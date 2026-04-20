@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { agent } from '../src/agent.ts';
-import { NotImplementedError } from '../src/errors.ts';
-import { budget } from '../src/budget.ts';
 import type { ProviderAdapter } from '../src/adapter.ts';
+import { agent } from '../src/agent.ts';
+import { budget } from '../src/budget.ts';
+import { NotImplementedError } from '../src/errors.ts';
 
 const mockAdapter: ProviderAdapter = {
   name: 'mock',

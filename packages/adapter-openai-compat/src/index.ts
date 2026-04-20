@@ -1,10 +1,6 @@
-import { NotImplementedError } from 'flint/errors';
-import type {
-  NormalizedRequest,
-  NormalizedResponse,
-  ProviderAdapter,
-} from 'flint';
+import type { NormalizedRequest, NormalizedResponse, ProviderAdapter } from 'flint';
 import type { Message, StreamChunk } from 'flint';
+import { NotImplementedError } from 'flint/errors';
 
 export type OpenAICompatAdapterOptions = {
   apiKey?: string;
@@ -13,9 +9,7 @@ export type OpenAICompatAdapterOptions = {
   defaultHeaders?: Record<string, string>;
 };
 
-export function openaiCompatAdapter(
-  _opts: OpenAICompatAdapterOptions,
-): ProviderAdapter {
+export function openaiCompatAdapter(_opts: OpenAICompatAdapterOptions): ProviderAdapter {
   return {
     name: 'openai-compat',
     capabilities: {
@@ -27,6 +21,7 @@ export function openaiCompatAdapter(
       throw new NotImplementedError('adapter-openai-compat.call');
     },
     async *stream(_req: NormalizedRequest): AsyncIterable<StreamChunk> {
+      // biome-ignore lint/correctness/useYield: stub throws before yield
       throw new NotImplementedError('adapter-openai-compat.stream');
     },
     count(_messages: Message[], _model: string): number {

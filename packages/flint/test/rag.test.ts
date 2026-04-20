@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { chunk, memoryStore, retrieve } from '../src/rag.ts';
 import { NotImplementedError } from '../src/errors.ts';
+import { chunk, memoryStore, retrieve } from '../src/rag.ts';
 
 describe('rag', () => {
   it('memoryStore() returns VectorStore methods', () => {
@@ -26,8 +26,6 @@ describe('rag', () => {
     expect(typeof retrieve).toBe('function');
     const store = memoryStore();
     const embedder = { embed: async (_: string[]) => [[0]], dimensions: 1 };
-    await expect(retrieve('q', { embedder, store, k: 3 })).rejects.toThrow(
-      NotImplementedError,
-    );
+    await expect(retrieve('q', { embedder, store, k: 3 })).rejects.toThrow(NotImplementedError);
   });
 });

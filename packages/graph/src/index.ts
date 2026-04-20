@@ -1,12 +1,9 @@
-import { NotImplementedError } from 'flint/errors';
-import type { Budget } from 'flint/budget';
 import type { ProviderAdapter } from 'flint';
 import type { Logger, Result } from 'flint';
+import type { Budget } from 'flint/budget';
+import { NotImplementedError } from 'flint/errors';
 
-export type NodeFn<S, _Input = S> = (
-  state: S,
-  ctx: RunContext,
-) => Promise<S> | S;
+export type NodeFn<S, _Input = S> = (state: S, ctx: RunContext) => Promise<S> | S;
 
 export type Node<S> = {
   readonly __type: 'node';
@@ -69,6 +66,7 @@ export function graph<S>(_def: GraphDefinition<S>): Graph<S> {
       throw new NotImplementedError('graph.run');
     },
     async *runStream(_initial, _ctx) {
+      // biome-ignore lint/correctness/useYield: stub throws before yield
       throw new NotImplementedError('graph.runStream');
     },
   };

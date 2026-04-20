@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { conversationMemory, messages, scratchpad } from '../src/memory.ts';
 import { NotImplementedError } from '../src/errors.ts';
+import { conversationMemory, messages, scratchpad } from '../src/memory.ts';
 
 describe('memory', () => {
   it('messages() returns helpers', () => {

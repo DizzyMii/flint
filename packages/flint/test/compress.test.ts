@@ -40,7 +40,12 @@ describe('compress transforms', () => {
   it('summarize transform requires opts and stubs throw', async () => {
     const t = summarize({
       when: () => true,
-      adapter: { name: 'x', capabilities: {}, call: async () => ({}) as never, stream: async function* () {} },
+      adapter: {
+        name: 'x',
+        capabilities: {},
+        call: async () => ({}) as never,
+        stream: async function* () {},
+      },
       model: 'x',
     });
     expect(typeof t).toBe('function');

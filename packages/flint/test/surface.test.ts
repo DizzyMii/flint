@@ -3,15 +3,7 @@ import { describe, expect, it } from 'vitest';
 describe('public surface (source)', () => {
   it('root exports resolve', async () => {
     const mod = await import('../src/index.ts');
-    for (const name of [
-      'call',
-      'stream',
-      'validate',
-      'tool',
-      'execute',
-      'count',
-      'agent',
-    ]) {
+    for (const name of ['call', 'stream', 'validate', 'tool', 'execute', 'count', 'agent']) {
       expect(typeof (mod as Record<string, unknown>)[name]).toBe('function');
     }
   });

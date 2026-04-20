@@ -1,6 +1,6 @@
+import { NotImplementedError } from 'flint/errors';
 import { describe, expect, it } from 'vitest';
 import { openaiCompatAdapter } from '../src/index.ts';
-import { NotImplementedError } from 'flint/errors';
 
 describe('openaiCompatAdapter', () => {
   it('produces a ProviderAdapter with name="openai-compat"', () => {
@@ -11,9 +11,7 @@ describe('openaiCompatAdapter', () => {
 
   it('call stub throws NotImplementedError', async () => {
     const a = openaiCompatAdapter({ baseUrl: 'https://example.com' });
-    await expect(
-      a.call({ model: 'x', messages: [] }),
-    ).rejects.toThrow(NotImplementedError);
+    await expect(a.call({ model: 'x', messages: [] })).rejects.toThrow(NotImplementedError);
   });
 
   it('stream stub throws on iteration', async () => {

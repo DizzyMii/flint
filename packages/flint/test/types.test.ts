@@ -1,11 +1,5 @@
 import { describe, expectTypeOf, it } from 'vitest';
-import type {
-  ContentPart,
-  Message,
-  Result,
-  Tool,
-  ToolCall,
-} from '../src/types.ts';
+import type { ContentPart, Message, Result, Tool, ToolCall } from '../src/types.ts';
 
 describe('types surface', () => {
   it('Message union is exhaustive', () => {
@@ -43,7 +37,7 @@ describe('types surface', () => {
   it('Tool exposes name/description/input/handler', () => {
     // type-level only
     type T = Tool<{ a: number }, string>;
-    type _Name = T['name'];       // string
+    type _Name = T['name']; // string
     type _Desc = T['description']; // string
     expectTypeOf<T['name']>().toEqualTypeOf<string>();
   });

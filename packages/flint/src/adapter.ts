@@ -1,4 +1,4 @@
-import type { Message, StreamChunk, Tool, Usage, StopReason, StandardSchemaV1 } from './types.ts';
+import type { Message, StandardSchemaV1, StopReason, StreamChunk, Tool, Usage } from './types.ts';
 
 export type NormalizedRequest = {
   model: string;

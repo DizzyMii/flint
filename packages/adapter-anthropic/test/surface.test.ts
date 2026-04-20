@@ -1,6 +1,6 @@
+import { NotImplementedError } from 'flint/errors';
 import { describe, expect, it } from 'vitest';
 import { anthropicAdapter } from '../src/index.ts';
-import { NotImplementedError } from 'flint/errors';
 
 describe('anthropicAdapter', () => {
   it('produces a ProviderAdapter with name="anthropic"', () => {
@@ -11,9 +11,7 @@ describe('anthropicAdapter', () => {
 
   it('call stub throws NotImplementedError', async () => {
     const a = anthropicAdapter({ apiKey: 'test' });
-    await expect(
-      a.call({ model: 'x', messages: [] }),
-    ).rejects.toThrow(NotImplementedError);
+    await expect(a.call({ model: 'x', messages: [] })).rejects.toThrow(NotImplementedError);
   });
 
   it('stream stub throws on iteration', async () => {

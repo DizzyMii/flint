@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { call } from '../src/primitives/call.ts';
-import { stream } from '../src/primitives/stream.ts';
-import { validate } from '../src/primitives/validate.ts';
-import { tool } from '../src/primitives/tool.ts';
-import { execute } from '../src/primitives/execute.ts';
-import { count } from '../src/primitives/count.ts';
-import { NotImplementedError } from '../src/errors.ts';
 import type { ProviderAdapter } from '../src/adapter.ts';
+import { NotImplementedError } from '../src/errors.ts';
+import { call } from '../src/primitives/call.ts';
+import { count } from '../src/primitives/count.ts';
+import { execute } from '../src/primitives/execute.ts';
+import { stream } from '../src/primitives/stream.ts';
+import { tool } from '../src/primitives/tool.ts';
+import { validate } from '../src/primitives/validate.ts';
 
 const mockAdapter: ProviderAdapter = {
   name: 'mock',
@@ -22,9 +22,9 @@ const mockAdapter: ProviderAdapter = {
 describe('primitives', () => {
   it('call is a function and stub throws NotImplementedError', async () => {
     expect(typeof call).toBe('function');
-    await expect(
-      call({ adapter: mockAdapter, model: 'x', messages: [] }),
-    ).rejects.toThrow(NotImplementedError);
+    await expect(call({ adapter: mockAdapter, model: 'x', messages: [] })).rejects.toThrow(
+      NotImplementedError,
+    );
   });
 
   it('stream is a function and stub throws on iteration', async () => {

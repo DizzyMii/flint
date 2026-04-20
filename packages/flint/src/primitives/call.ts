@@ -1,6 +1,6 @@
-import type { ProviderAdapter, NormalizedRequest } from '../adapter.ts';
-import type { Transform } from '../compress.ts';
+import type { NormalizedRequest, ProviderAdapter } from '../adapter.ts';
 import type { Budget } from '../budget.ts';
+import type { Transform } from '../compress.ts';
 import { NotImplementedError } from '../errors.ts';
 import type { Logger, Message, Result, StandardSchemaV1, StopReason, Usage } from '../types.ts';
 
@@ -20,8 +20,6 @@ export type CallOutput<T = unknown> = {
   stopReason: StopReason;
 };
 
-export async function call<T = unknown>(
-  _options: CallOptions,
-): Promise<Result<CallOutput<T>>> {
+export async function call<T = unknown>(_options: CallOptions): Promise<Result<CallOutput<T>>> {
   throw new NotImplementedError('primitives.call');
 }

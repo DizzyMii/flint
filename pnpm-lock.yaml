@@ -27,6 +27,67 @@ importers:
         specifier: 2.1.8
         version: 2.1.8(@types/node@22.10.2)
 
+  packages/adapter-anthropic:
+    devDependencies:
+      flint:
+        specifier: workspace:*
+        version: link:../flint
+      tsup:
+        specifier: 8.3.5
+        version: 8.3.5(postcss@8.5.10)(typescript@5.7.2)
+      typescript:
+        specifier: 5.7.2
+        version: 5.7.2
+      vitest:
+        specifier: 2.1.8
+        version: 2.1.8(@types/node@22.10.2)
+
+  packages/adapter-openai-compat:
+    devDependencies:
+      flint:
+        specifier: workspace:*
+        version: link:../flint
+      tsup:
+        specifier: 8.3.5
+        version: 8.3.5(postcss@8.5.10)(typescript@5.7.2)
+      typescript:
+        specifier: 5.7.2
+        version: 5.7.2
+      vitest:
+        specifier: 2.1.8
+        version: 2.1.8(@types/node@22.10.2)
+
+  packages/flint:
+    dependencies:
+      '@standard-schema/spec':
+        specifier: 1.0.0
+        version: 1.0.0
+    devDependencies:
+      tsup:
+        specifier: 8.3.5
+        version: 8.3.5(postcss@8.5.10)(typescript@5.7.2)
+      typescript:
+        specifier: 5.7.2
+        version: 5.7.2
+      vitest:
+        specifier: 2.1.8
+        version: 2.1.8(@types/node@22.10.2)
+
+  packages/graph:
+    devDependencies:
+      flint:
+        specifier: workspace:*
+        version: link:../flint
+      tsup:
+        specifier: 8.3.5
+        version: 8.3.5(postcss@8.5.10)(typescript@5.7.2)
+      typescript:
+        specifier: 5.7.2
+        version: 5.7.2
+      vitest:
+        specifier: 2.1.8
+        version: 2.1.8(@types/node@22.10.2)
+
 packages:
 
   '@babel/runtime@7.29.2':
@@ -584,6 +645,9 @@ packages:
     resolution: {integrity: sha512-Nd/SgG27WoA9e+/TdK74KnHz852TLa94ovOYySo/yMPuTmpckK/jIF2jSwS3g7ELSKXK13/cVdmg1Z/DaCWKxA==}
     cpu: [x64]
     os: [win32]
+
+  '@standard-schema/spec@1.0.0':
+    resolution: {integrity: sha512-m2bOd0f2RT9k8QJx1JN85cZYyH1RqFBdlwtkSlf4tBDYLCiiZnv1fIIwacK6cqwXavOydf0NPToMQgpKq+dVlA==}
 
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
@@ -1699,6 +1763,8 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.60.2':
     optional: true
+
+  '@standard-schema/spec@1.0.0': {}
 
   '@types/estree@1.0.8': {}
 

@@ -1,8 +1,8 @@
 import type { ProviderAdapter } from './adapter.ts';
+import type { AgentOutput } from './agent.ts';
 import type { Budget } from './budget.ts';
 import { NotImplementedError } from './errors.ts';
 import type { Message, Result, StandardSchemaV1, Tool } from './types.ts';
-import type { AgentOutput } from './agent.ts';
 
 export type ReactOptions = {
   adapter: ProviderAdapter;
@@ -23,9 +23,7 @@ export type RetryValidateOptions<T> = {
   schema: StandardSchemaV1<T>;
   maxAttempts: number;
 };
-export async function retryValidate<T>(
-  _opts: RetryValidateOptions<T>,
-): Promise<Result<T>> {
+export async function retryValidate<T>(_opts: RetryValidateOptions<T>): Promise<Result<T>> {
   throw new NotImplementedError('recipes.retryValidate');
 }
 
