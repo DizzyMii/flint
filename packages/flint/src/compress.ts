@@ -63,17 +63,51 @@ export function truncateToolResults(opts: TruncateOpts): Transform {
   };
 }
 
-export type WindowOpts = { keep: number; alwaysKeep?: Array<Message['role']> };
-export function windowLast(_opts: WindowOpts): Transform {
-  return async () => {
-    throw new NotImplementedError('compress.windowLast');
-  };
+export type WindowOpts = {
+  keep: number;
+  alwaysKeep?: Array<Message['role']>;
+};
+
+function validateWindow(opts: WindowOpts, name: string): void {
+  if (opts.keep < 0 || !Number.isInteger(opts.keep)) {
+    throw new TypeError(`${name}: keep must be a non-negative integer (got ${opts.keep})`);
+  }
 }
 
-export function windowFirst(_opts: WindowOpts): Transform {
-  return async () => {
-    throw new NotImplementedError('compress.windowFirst');
-  };
+function applyWindow(
+  messages: Message[],
+  keep: number,
+  alwaysKeepRoles: Array<Message['role']>,
+  take: 'first' | 'last',
+): Message[] {
+  // Partition with original indices
+  const kept: Array<{ index: number; msg: Message }> = [];
+  const eligible: Array<{ index: number; msg: Message }> = [];
+  messages.forEach((msg, index) => {
+    if (alwaysKeepRoles.includes(msg.role)) {
+      kept.push({ index, msg });
+    } else {
+      eligible.push({ index, msg });
+    }
+  });
+
+  const taken =
+    take === 'last' ? eligible.slice(Math.max(0, eligible.length - keep)) : eligible.slice(0, keep);
+
+  const merged = [...kept, ...taken].sort((a, b) => a.index - b.index);
+  return merged.map((x) => x.msg);
+}
+
+export function windowLast(opts: WindowOpts): Transform {
+  validateWindow(opts, 'windowLast');
+  const alwaysKeepRoles = opts.alwaysKeep ?? ['system'];
+  return async (messages) => applyWindow(messages, opts.keep, alwaysKeepRoles, 'last');
+}
+
+export function windowFirst(opts: WindowOpts): Transform {
+  validateWindow(opts, 'windowFirst');
+  const alwaysKeepRoles = opts.alwaysKeep ?? ['system'];
+  return async (messages) => applyWindow(messages, opts.keep, alwaysKeepRoles, 'first');
 }
 
 

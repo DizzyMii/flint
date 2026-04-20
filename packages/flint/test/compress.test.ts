@@ -22,8 +22,6 @@ describe('compress transforms', () => {
   });
 
   const transforms = [
-    ['windowLast', windowLast({ keep: 1 })],
-    ['windowFirst', windowFirst({ keep: 1 })],
     ['orderForCache', orderForCache()],
   ] as const;
 
@@ -197,5 +195,133 @@ describe('truncateToolResults', () => {
     const original = { ...msg };
     await t([msg], {});
     expect(msg).toEqual(original);
+  });
+});
+
+describe('windowLast', () => {
+  const fixture: Message[] = [
+    { role: 'system', content: 'sys1' },
+    { role: 'user', content: 'u1' },
+    { role: 'assistant', content: 'a1' },
+    { role: 'user', content: 'u2' },
+    { role: 'assistant', content: 'a2' },
+    { role: 'user', content: 'u3' },
+  ];
+
+  it('throws TypeError when keep is negative', () => {
+    expect(() => windowLast({ keep: -1 })).toThrow(TypeError);
+  });
+
+  it('keep: 0, alwaysKeep: [] returns empty', async () => {
+    const t = windowLast({ keep: 0, alwaysKeep: [] });
+    const out = await t(fixture, {});
+    expect(out).toEqual([]);
+  });
+
+  it('default alwaysKeep preserves system messages', async () => {
+    const t = windowLast({ keep: 2 });
+    const out = await t(fixture, {});
+    expect(out).toEqual([
+      { role: 'system', content: 'sys1' },
+      { role: 'assistant', content: 'a2' },
+      { role: 'user', content: 'u3' },
+    ]);
+  });
+
+  it('keeps last N non-system messages when alwaysKeep is default', async () => {
+    const t = windowLast({ keep: 3 });
+    const out = await t(fixture, {});
+    expect(out.map((m) => (m as { content: string }).content)).toEqual([
+      'sys1',
+      'u2',
+      'a2',
+      'u3',
+    ]);
+  });
+
+  it('preserves multiple system messages at original positions', async () => {
+    const t = windowLast({ keep: 1 });
+    const msgs: Message[] = [
+      { role: 'system', content: 's1' },
+      { role: 'user', content: 'u1' },
+      { role: 'system', content: 's2' },
+      { role: 'user', content: 'u2' },
+      { role: 'user', content: 'u3' },
+    ];
+    const out = await t(msgs, {});
+    expect(out).toEqual([
+      { role: 'system', content: 's1' },
+      { role: 'system', content: 's2' },
+      { role: 'user', content: 'u3' },
+    ]);
+  });
+
+  it('explicit empty alwaysKeep strips system too', async () => {
+    const t = windowLast({ keep: 2, alwaysKeep: [] });
+    const out = await t(fixture, {});
+    expect(out).toEqual([
+      { role: 'assistant', content: 'a2' },
+      { role: 'user', content: 'u3' },
+    ]);
+  });
+
+  it('does not mutate input array', async () => {
+    const t = windowLast({ keep: 2 });
+    const copy = [...fixture];
+    await t(fixture, {});
+    expect(fixture).toEqual(copy);
+  });
+
+  it('keep greater than messages length returns everything eligible', async () => {
+    const t = windowLast({ keep: 100 });
+    const out = await t(fixture, {});
+    expect(out).toEqual(fixture);
+  });
+});
+
+describe('windowFirst', () => {
+  const fixture: Message[] = [
+    { role: 'system', content: 'sys1' },
+    { role: 'user', content: 'u1' },
+    { role: 'assistant', content: 'a1' },
+    { role: 'user', content: 'u2' },
+    { role: 'assistant', content: 'a2' },
+    { role: 'user', content: 'u3' },
+  ];
+
+  it('throws TypeError when keep is negative', () => {
+    expect(() => windowFirst({ keep: -1 })).toThrow(TypeError);
+  });
+
+  it('keep: 0, alwaysKeep: [] returns empty', async () => {
+    const t = windowFirst({ keep: 0, alwaysKeep: [] });
+    const out = await t(fixture, {});
+    expect(out).toEqual([]);
+  });
+
+  it('default alwaysKeep preserves system messages', async () => {
+    const t = windowFirst({ keep: 2 });
+    const out = await t(fixture, {});
+    expect(out).toEqual([
+      { role: 'system', content: 'sys1' },
+      { role: 'user', content: 'u1' },
+      { role: 'assistant', content: 'a1' },
+    ]);
+  });
+
+  it('takes first N eligible', async () => {
+    const t = windowFirst({ keep: 1 });
+    const out = await t(fixture, {});
+    expect(out).toEqual([
+      { role: 'system', content: 'sys1' },
+      { role: 'user', content: 'u1' },
+    ]);
+  });
+
+  it('does not mutate input', async () => {
+    const t = windowFirst({ keep: 2 });
+    const copy = [...fixture];
+    await t(fixture, {});
+    expect(fixture).toEqual(copy);
   });
 });
