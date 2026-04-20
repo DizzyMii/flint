@@ -99,7 +99,8 @@ export function memoryStore(): VectorStore {
       const idSet = new Set(ids);
       let i = docs.length;
       while (i--) {
-        if (idSet.has(docs[i]!.id)) {
+        const doc = docs[i];
+        if (doc && idSet.has(doc.id)) {
           docs.splice(i, 1);
         }
       }

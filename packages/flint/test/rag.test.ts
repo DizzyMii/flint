@@ -36,9 +36,9 @@ describe('memoryStore', () => {
   it('throws TypeError when upserting a doc with mismatched embedding dimension', async () => {
     const s = memoryStore();
     await s.upsert([{ id: 'a', text: 'first', embedding: [1, 0] }]);
-    await expect(
-      s.upsert([{ id: 'b', text: 'second', embedding: [1, 0, 0] }]),
-    ).rejects.toThrow(TypeError);
+    await expect(s.upsert([{ id: 'b', text: 'second', embedding: [1, 0, 0] }])).rejects.toThrow(
+      TypeError,
+    );
   });
 
   it('returns results sorted by cosine similarity descending', async () => {
@@ -51,7 +51,9 @@ describe('memoryStore', () => {
     const results = await s.query([1, 0], 2);
     expect(results[0]?.id).toBe('b');
     expect(results[1]?.id).toBe('a');
-    expect(results[0]!.score).toBeGreaterThan(results[1]!.score);
+    const firstScore = results[0]?.score ?? 0;
+    const secondScore = results[1]?.score ?? 0;
+    expect(firstScore).toBeGreaterThan(secondScore);
   });
 
   it('returns only top-k results', async () => {
@@ -269,7 +271,9 @@ describe('retrieve', () => {
     const fakeMatches: Match[] = [{ id: 'x', text: 'hello', score: 0.99 }];
     const fakeStore: VectorStore = {
       async upsert() {},
-      async query() { return fakeMatches; },
+      async query() {
+        return fakeMatches;
+      },
       async delete() {},
     };
     const results = await retrieve('q', { embedder: makeEmbedder([1, 0]), store: fakeStore, k: 1 });

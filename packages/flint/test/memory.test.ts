@@ -34,7 +34,7 @@ describe('messages()', () => {
       { role: 'assistant', content: 'b' },
       { role: 'user', content: 'c' },
     ];
-    msgs.forEach((msg) => m.push(msg));
+    for (const msg of msgs) m.push(msg);
     expect(m.slice(0, 2)).toEqual([msgs[0], msgs[1]]);
     expect(m.slice(1)).toEqual([msgs[1], msgs[2]]);
     expect(m.slice(-1)).toEqual([msgs[2]]);
@@ -154,7 +154,7 @@ describe('conversationMemory()', () => {
     await mem.append(makeMsg('d')); // 4 → trigger
     expect(summarizer).toHaveBeenCalledOnce();
     // summarizer received the first 3 messages (all but last 1)
-    expect(summarizer.mock.calls[0]![0]).toHaveLength(3);
+    expect(summarizer.mock.calls[0]?.[0]).toHaveLength(3);
     // stored messages: 1 system summary + 1 kept message = 2
     expect(mem.messages()).toHaveLength(2);
     expect(mem.messages()[0]).toMatchObject({ role: 'system' });
