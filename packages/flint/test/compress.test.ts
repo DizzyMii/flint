@@ -18,7 +18,8 @@ describe('compress transforms', () => {
   it('pipeline returns a function that runs transforms', async () => {
     const p = pipeline();
     expect(typeof p).toBe('function');
-    await expect(p(msgs, {})).rejects.toThrow(NotImplementedError);
+    const result = await p(msgs, {});
+    expect(result).toEqual(msgs);
   });
 
   const transforms = [
