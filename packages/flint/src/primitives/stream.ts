@@ -12,9 +12,7 @@ export type StreamOptions = Omit<NormalizedRequest, 'signal' | 'messages'> & {
   signal?: AbortSignal;
 };
 
-export async function* stream(
-  options: StreamOptions,
-): AsyncIterable<StreamChunk> {
+export async function* stream(options: StreamOptions): AsyncIterable<StreamChunk> {
   if (!options || !options.adapter || !options.model || !options.messages) {
     throw new TypeError(
       'stream: options.adapter, options.model, and options.messages are required',

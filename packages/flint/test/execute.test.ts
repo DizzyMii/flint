@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { ParseError, ToolError } from '../src/errors.ts';
 import { execute } from '../src/primitives/execute.ts';
 import { tool } from '../src/primitives/tool.ts';
-import { ParseError, ToolError } from '../src/errors.ts';
 import type { StandardSchemaV1 } from '../src/types.ts';
 
 function numberSchema(): StandardSchemaV1<unknown, { n: number }> {

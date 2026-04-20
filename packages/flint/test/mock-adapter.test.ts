@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { mockAdapter, scriptedAdapter } from '../src/testing/mock-adapter.ts';
 import type { NormalizedResponse, StreamChunk } from '../src/adapter.ts';
+import { mockAdapter, scriptedAdapter } from '../src/testing/mock-adapter.ts';
 import type { Message } from '../src/types.ts';
 
 const textResponse = (content: string): NormalizedResponse => ({
@@ -83,11 +83,7 @@ describe('mockAdapter', () => {
     for await (const chunk of a.stream({ model: 'm', messages: [] })) {
       chunks.push(chunk);
     }
-    expect(chunks.map((c) => (c.type === 'text' ? c.delta : c.type))).toEqual([
-      'A',
-      'B',
-      'end',
-    ]);
+    expect(chunks.map((c) => (c.type === 'text' ? c.delta : c.type))).toEqual(['A', 'B', 'end']);
   });
 
   it('count delegates to opts.count when provided', () => {
@@ -95,7 +91,7 @@ describe('mockAdapter', () => {
       onCall: () => textResponse('x'),
       count: (messages: Message[]) => messages.length * 100,
     });
-    expect(a.count!([{ role: 'user', content: 'hi' }], 'm')).toBe(100);
+    expect(a.count?.([{ role: 'user', content: 'hi' }], 'm')).toBe(100);
   });
 
   it('count is undefined when not provided', () => {

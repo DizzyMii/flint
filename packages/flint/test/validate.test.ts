@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { validate } from '../src/primitives/validate.ts';
 import { ValidationError } from '../src/errors.ts';
+import { validate } from '../src/primitives/validate.ts';
 import type { StandardSchemaV1 } from '../src/types.ts';
 
 // Build a minimal StandardSchema-compliant schema for tests.

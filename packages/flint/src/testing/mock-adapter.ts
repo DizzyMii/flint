@@ -17,10 +17,7 @@ export type MockAdapterOptions = {
     req: NormalizedRequest,
     callIndex: number,
   ) => NormalizedResponse | Promise<NormalizedResponse>;
-  onStream?: (
-    req: NormalizedRequest,
-    callIndex: number,
-  ) => AsyncIterable<StreamChunk>;
+  onStream?: (req: NormalizedRequest, callIndex: number) => AsyncIterable<StreamChunk>;
   count?: (messages: Message[], model: string) => number;
 };
 
@@ -28,15 +25,16 @@ export function mockAdapter(opts: MockAdapterOptions): MockAdapter {
   const calls: NormalizedRequest[] = [];
   let callIndex = 0;
 
-  async function* defaultStream(
-    req: NormalizedRequest,
-    index: number,
-  ): AsyncIterable<StreamChunk> {
+  async function* defaultStream(req: NormalizedRequest, index: number): AsyncIterable<StreamChunk> {
     const resp = await opts.onCall(req, index);
     if (resp.message.content) {
       yield { type: 'text', delta: resp.message.content };
     }
-    yield { type: 'usage', usage: resp.usage, ...(resp.cost !== undefined ? { cost: resp.cost } : {}) };
+    yield {
+      type: 'usage',
+      usage: resp.usage,
+      ...(resp.cost !== undefined ? { cost: resp.cost } : {}),
+    };
     yield { type: 'end', reason: resp.stopReason };
   }
 
@@ -52,9 +50,7 @@ export function mockAdapter(opts: MockAdapterOptions): MockAdapter {
     stream(req) {
       calls.push(req);
       const index = callIndex++;
-      const iter = opts.onStream
-        ? opts.onStream(req, index)
-        : defaultStream(req, index);
+      const iter = opts.onStream ? opts.onStream(req, index) : defaultStream(req, index);
       return iter;
     },
     ...(opts.count ? { count: opts.count } : {}),

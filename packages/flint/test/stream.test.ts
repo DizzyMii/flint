@@ -58,9 +58,7 @@ describe('stream', () => {
     for await (const _ of stream({ adapter, model: 'm', messages: msg, compress })) {
       // drain
     }
-    expect(adapter.calls[0]?.messages).toEqual([
-      { role: 'user', content: 'compressed' },
-    ]);
+    expect(adapter.calls[0]?.messages).toEqual([{ role: 'user', content: 'compressed' }]);
   });
 
   it('forwards signal to adapter request', async () => {

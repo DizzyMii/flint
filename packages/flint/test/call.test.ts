@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import type { NormalizedResponse } from '../src/adapter.ts';
+import { AdapterError, ParseError, ValidationError } from '../src/errors.ts';
 import { call } from '../src/primitives/call.ts';
 import { mockAdapter } from '../src/testing/mock-adapter.ts';
-import { AdapterError, ParseError, ValidationError } from '../src/errors.ts';
-import type { NormalizedResponse } from '../src/adapter.ts';
 import type { Message, StandardSchemaV1 } from '../src/types.ts';
 
 const textResponse = (content: string, stop: 'end' | 'tool_call' = 'end'): NormalizedResponse => ({
@@ -16,8 +16,7 @@ function jsonSchema<T>(check: (v: unknown) => v is T): StandardSchemaV1<unknown,
     '~standard': {
       version: 1,
       vendor: 'test',
-      validate: (raw) =>
-        check(raw) ? { value: raw } : { issues: [{ message: 'bad shape' }] },
+      validate: (raw) => (check(raw) ? { value: raw } : { issues: [{ message: 'bad shape' }] }),
     },
   };
 }
@@ -121,9 +120,7 @@ describe('call', () => {
     const adapter = mockAdapter({ onCall: () => textResponse('ok') });
     const compress = async () => [{ role: 'user', content: 'compressed' } as const];
     await call({ adapter, model: 'm', messages: msg, compress });
-    expect(adapter.calls[0]?.messages).toEqual([
-      { role: 'user', content: 'compressed' },
-    ]);
+    expect(adapter.calls[0]?.messages).toEqual([{ role: 'user', content: 'compressed' }]);
   });
 
   it('forwards signal to adapter request', async () => {

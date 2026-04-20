@@ -1,4 +1,4 @@
-import type { NormalizedRequest, ProviderAdapter } from '../adapter.ts';
+import type { NormalizedRequest, NormalizedResponse, ProviderAdapter } from '../adapter.ts';
 import type { Budget } from '../budget.ts';
 import type { Transform } from '../compress.ts';
 import { AdapterError, ParseError } from '../errors.ts';
@@ -22,13 +22,9 @@ export type CallOutput<T = unknown> = {
   stopReason: StopReason;
 };
 
-export async function call<T = unknown>(
-  options: CallOptions,
-): Promise<Result<CallOutput<T>>> {
+export async function call<T = unknown>(options: CallOptions): Promise<Result<CallOutput<T>>> {
   if (!options || !options.adapter || !options.model || !options.messages) {
-    throw new TypeError(
-      'call: options.adapter, options.model, and options.messages are required',
-    );
+    throw new TypeError('call: options.adapter, options.model, and options.messages are required');
   }
 
   const ctx = {
@@ -55,16 +51,16 @@ export async function call<T = unknown>(
     ...(options.signal !== undefined ? { signal: options.signal } : {}),
   };
 
-  let resp;
+  let resp: NormalizedResponse;
   try {
     resp = await options.adapter.call(req);
   } catch (e) {
     return {
       ok: false,
-      error: new AdapterError(
-        e instanceof Error ? e.message : 'Adapter call failed',
-        { code: 'adapter.call_failed', cause: e },
-      ),
+      error: new AdapterError(e instanceof Error ? e.message : 'Adapter call failed', {
+        code: 'adapter.call_failed',
+        cause: e,
+      }),
     };
   }
 

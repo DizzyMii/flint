@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { count } from '../src/primitives/count.ts';
 import { approxCount } from '../src/primitives/approx-count.ts';
+import { count } from '../src/primitives/count.ts';
 import { mockAdapter } from '../src/testing/mock-adapter.ts';
 import type { Message } from '../src/types.ts';
 
