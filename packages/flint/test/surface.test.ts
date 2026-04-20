@@ -30,7 +30,6 @@ describe('public surface (source)', () => {
       'truncateToolResults',
       'windowLast',
       'windowFirst',
-      'pinSystem',
       'summarize',
       'orderForCache',
     ]) {

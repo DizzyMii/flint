@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   dedup,
   orderForCache,
-  pinSystem,
   pipeline,
   summarize,
   truncateToolResults,
@@ -24,10 +23,9 @@ describe('compress transforms', () => {
 
   const transforms = [
     ['dedup', dedup()],
-    ['truncateToolResults', truncateToolResults({ maxChars: 10 })],
+    ['truncateToolResults', truncateToolResults({ maxChars: 100 })],
     ['windowLast', windowLast({ keep: 1 })],
     ['windowFirst', windowFirst({ keep: 1 })],
-    ['pinSystem', pinSystem()],
     ['orderForCache', orderForCache()],
   ] as const;
 

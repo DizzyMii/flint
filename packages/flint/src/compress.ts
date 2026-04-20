@@ -45,11 +45,6 @@ export function windowFirst(_opts: WindowOpts): Transform {
   };
 }
 
-export function pinSystem(): Transform {
-  return async () => {
-    throw new NotImplementedError('compress.pinSystem');
-  };
-}
 
 export type SummarizeOpts = {
   when: (messages: Message[]) => boolean;
