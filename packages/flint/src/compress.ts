@@ -42,9 +42,7 @@ export type TruncateOpts = { maxChars: number };
 
 export function truncateToolResults(opts: TruncateOpts): Transform {
   if (opts.maxChars <= 50) {
-    throw new TypeError(
-      `truncateToolResults: maxChars must be > 50 (got ${opts.maxChars})`,
-    );
+    throw new TypeError(`truncateToolResults: maxChars must be > 50 (got ${opts.maxChars})`);
   }
   const { maxChars } = opts;
   return async (messages) => {
@@ -109,7 +107,6 @@ export function windowFirst(opts: WindowOpts): Transform {
   return async (messages) => applyWindow(messages, opts.keep, alwaysKeepRoles, 'first');
 }
 
-
 export type SummarizeOpts = {
   when: (messages: Message[]) => boolean;
   adapter: ProviderAdapter;
@@ -147,10 +144,7 @@ export function summarize(opts: SummarizeOpts): Transform {
       return messages;
     }
 
-    return [
-      { role: 'system', content: `Summary of prior conversation: ${summary}` },
-      ...toKeep,
-    ];
+    return [{ role: 'system', content: `Summary of prior conversation: ${summary}` }, ...toKeep];
   };
 }
 

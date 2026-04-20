@@ -113,9 +113,7 @@ describe('truncateToolResults', () => {
 
   it('leaves short tool results unchanged', async () => {
     const t = truncateToolResults({ maxChars: 1000 });
-    const msgs: Message[] = [
-      { role: 'tool', content: 'short result', toolCallId: 'c1' },
-    ];
+    const msgs: Message[] = [{ role: 'tool', content: 'short result', toolCallId: 'c1' }];
     const out = await t(msgs, {});
     expect(out).toEqual(msgs);
   });
@@ -123,9 +121,7 @@ describe('truncateToolResults', () => {
   it('truncates long tool results with marker', async () => {
     const t = truncateToolResults({ maxChars: 100 });
     const longContent = 'x'.repeat(500);
-    const msgs: Message[] = [
-      { role: 'tool', content: longContent, toolCallId: 'c1' },
-    ];
+    const msgs: Message[] = [{ role: 'tool', content: longContent, toolCallId: 'c1' }];
     const out = await t(msgs, {});
     const resultContent = out[0]?.content;
     expect(typeof resultContent).toBe('string');
@@ -138,9 +134,7 @@ describe('truncateToolResults', () => {
 
   it('preserves toolCallId in truncated message', async () => {
     const t = truncateToolResults({ maxChars: 100 });
-    const msgs: Message[] = [
-      { role: 'tool', content: 'x'.repeat(500), toolCallId: 'my-id' },
-    ];
+    const msgs: Message[] = [{ role: 'tool', content: 'x'.repeat(500), toolCallId: 'my-id' }];
     const out = await t(msgs, {});
     expect(out[0]).toMatchObject({ toolCallId: 'my-id' });
   });
@@ -205,12 +199,7 @@ describe('windowLast', () => {
   it('keeps last N non-system messages when alwaysKeep is default', async () => {
     const t = windowLast({ keep: 3 });
     const out = await t(fixture, {});
-    expect(out.map((m) => (m as { content: string }).content)).toEqual([
-      'sys1',
-      'u2',
-      'a2',
-      'u3',
-    ]);
+    expect(out.map((m) => (m as { content: string }).content)).toEqual(['sys1', 'u2', 'a2', 'u3']);
   });
 
   it('preserves multiple system messages at original positions', async () => {
@@ -465,5 +454,59 @@ describe('summarize', () => {
     const sentMessages = adapter.calls[0]?.messages ?? [];
     const sysMsg = sentMessages.find((m) => m.role === 'system');
     expect(sysMsg?.content).toBe('Custom prefix:');
+  });
+});
+
+describe('compress integration (pipeline composition)', () => {
+  it('pipeline(dedup, truncateToolResults) applies both in order', async () => {
+    const p = pipeline(dedup(), truncateToolResults({ maxChars: 100 }));
+    const msgs: Message[] = [
+      { role: 'user', content: 'hello' },
+      { role: 'user', content: 'hello' },
+      { role: 'tool', content: 'x'.repeat(500), toolCallId: 'c1' },
+    ];
+    const out = await p(msgs, {});
+    expect(out).toHaveLength(2); // dup dropped
+    expect(out[1]?.content).toMatch(/truncated/);
+  });
+
+  it('pipeline(windowLast, dedup) windows then dedups', async () => {
+    const p = pipeline(windowLast({ keep: 5 }), dedup());
+    const msgs: Message[] = [
+      { role: 'system', content: 'sys' },
+      { role: 'user', content: 'a' },
+      { role: 'user', content: 'b' },
+      { role: 'user', content: 'c' },
+      { role: 'user', content: 'd' },
+      { role: 'user', content: 'd' },
+      { role: 'user', content: 'e' },
+    ];
+    const out = await p(msgs, {});
+    // windowLast keeps system + last 5 (c, d, d, e)... wait: after system, we have 6 non-system. Last 5 = [b, c, d, d, e].
+    // So out after windowLast: [sys, b, c, d, d, e]
+    // After dedup: [sys, b, c, d, e]
+    expect(out.map((m) => (m as { content: string }).content)).toEqual(['sys', 'b', 'c', 'd', 'e']);
+  });
+
+  it('realistic scenario: reduces total character count via window + truncate', async () => {
+    const msgs: Message[] = [{ role: 'system', content: 'be helpful' }];
+    for (let i = 0; i < 30; i++) {
+      msgs.push({ role: 'user', content: `Question ${i}` });
+      msgs.push({ role: 'assistant', content: `Answer ${i}`.repeat(20) });
+      msgs.push({ role: 'tool', content: 'x'.repeat(5000), toolCallId: `c${i}` });
+    }
+    const originalChars = msgs.reduce(
+      (acc, m) => acc + (typeof m.content === 'string' ? m.content.length : 0),
+      0,
+    );
+
+    const p = pipeline(windowLast({ keep: 10 }), truncateToolResults({ maxChars: 200 }));
+    const out = await p(msgs, {});
+    const afterChars = out.reduce(
+      (acc, m) => acc + (typeof m.content === 'string' ? m.content.length : 0),
+      0,
+    );
+
+    expect(afterChars).toBeLessThan(originalChars * 0.5); // ≥ 50% reduction
   });
 });
