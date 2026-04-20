@@ -1,13 +1,24 @@
-import type { NormalizedRequest, NormalizedResponse, ProviderAdapter } from '../adapter.ts';
+import type { NormalizedRequest, ProviderAdapter } from '../adapter.ts';
 import type { Budget } from '../budget.ts';
 import type { Transform } from '../compress.ts';
-import { AdapterError, ParseError } from '../errors.ts';
-import type { Logger, Message, Result, StopReason, Usage } from '../types.ts';
+import { AdapterError, BudgetExhausted, ParseError } from '../errors.ts';
+import type {
+  Logger,
+  Message,
+  Result,
+  StandardSchemaV1,
+  StopReason,
+  Usage,
+} from '../types.ts';
 import { validate } from './validate.ts';
 
-export type CallOptions = Omit<NormalizedRequest, 'signal' | 'messages'> & {
+export type CallOptions<T = unknown> = Omit<
+  NormalizedRequest,
+  'signal' | 'messages' | 'schema'
+> & {
   adapter: ProviderAdapter;
   messages: Message[];
+  schema?: StandardSchemaV1<unknown, T>;
   budget?: Budget;
   compress?: Transform;
   logger?: Logger;
@@ -22,9 +33,13 @@ export type CallOutput<T = unknown> = {
   stopReason: StopReason;
 };
 
-export async function call<T = unknown>(options: CallOptions): Promise<Result<CallOutput<T>>> {
+export async function call<T = unknown>(
+  options: CallOptions<T>,
+): Promise<Result<CallOutput<T>>> {
   if (!options || !options.adapter || !options.model || !options.messages) {
-    throw new TypeError('call: options.adapter, options.model, and options.messages are required');
+    throw new TypeError(
+      'call: options.adapter, options.model, and options.messages are required',
+    );
   }
 
   const ctx = {
@@ -36,7 +51,14 @@ export async function call<T = unknown>(options: CallOptions): Promise<Result<Ca
     : options.messages;
 
   if (options.budget) {
-    options.budget.assertNotExhausted();
+    try {
+      options.budget.assertNotExhausted();
+    } catch (e) {
+      if (e instanceof BudgetExhausted) {
+        return { ok: false, error: e };
+      }
+      throw e;
+    }
   }
 
   const req: NormalizedRequest = {
@@ -51,24 +73,31 @@ export async function call<T = unknown>(options: CallOptions): Promise<Result<Ca
     ...(options.signal !== undefined ? { signal: options.signal } : {}),
   };
 
-  let resp: NormalizedResponse;
+  let resp;
   try {
     resp = await options.adapter.call(req);
   } catch (e) {
     return {
       ok: false,
-      error: new AdapterError(e instanceof Error ? e.message : 'Adapter call failed', {
-        code: 'adapter.call_failed',
-        cause: e,
-      }),
+      error: new AdapterError(
+        e instanceof Error ? e.message : 'Adapter call failed',
+        { code: 'adapter.call_failed', cause: e },
+      ),
     };
   }
 
   if (options.budget) {
-    options.budget.consume({
-      ...resp.usage,
-      ...(resp.cost !== undefined ? { cost: resp.cost } : {}),
-    });
+    try {
+      options.budget.consume({
+        ...resp.usage,
+        ...(resp.cost !== undefined ? { cost: resp.cost } : {}),
+      });
+    } catch (e) {
+      if (e instanceof BudgetExhausted) {
+        return { ok: false, error: e };
+      }
+      throw e;
+    }
   }
 
   const output: CallOutput<T> = {
@@ -95,7 +124,7 @@ export async function call<T = unknown>(options: CallOptions): Promise<Result<Ca
     if (!validated.ok) {
       return { ok: false, error: validated.error };
     }
-    output.value = validated.value as T;
+    output.value = validated.value;
   }
 
   return { ok: true, value: output };

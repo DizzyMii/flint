@@ -4,6 +4,9 @@ import { AdapterError, ParseError, ValidationError } from '../src/errors.ts';
 import { call } from '../src/primitives/call.ts';
 import { mockAdapter } from '../src/testing/mock-adapter.ts';
 import type { Message, StandardSchemaV1 } from '../src/types.ts';
+import { budget } from '../src/budget.ts';
+import { BudgetExhausted } from '../src/errors.ts';
+import { expectTypeOf } from 'vitest';
 
 const textResponse = (content: string, stop: 'end' | 'tool_call' = 'end'): NormalizedResponse => ({
   message: { role: 'assistant', content },
@@ -133,5 +136,60 @@ describe('call', () => {
   it('throws TypeError when adapter is missing', async () => {
     // biome-ignore lint/suspicious/noExplicitAny: intentional bad input for test
     await expect(call({ model: 'm', messages: msg } as any)).rejects.toThrow(TypeError);
+  });
+
+  it('returns Result.error(BudgetExhausted) when budget is exhausted post-consume', async () => {
+    const adapter = mockAdapter({
+      onCall: () => ({
+        message: { role: 'assistant', content: 'ok' },
+        usage: { input: 50, output: 50 },
+        stopReason: 'end',
+      }),
+    });
+    // maxTokens 99, so the first consume (100 tokens) exhausts
+    const b = budget({ maxTokens: 99 });
+    const res = await call({ adapter, model: 'm', messages: msg, budget: b });
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error).toBeInstanceOf(BudgetExhausted);
+      if (res.error instanceof BudgetExhausted) {
+        expect(res.error.code).toBe('budget.tokens');
+      }
+    }
+  });
+
+  it('returns Result.error(BudgetExhausted) when budget is already exhausted before call', async () => {
+    const adapter = mockAdapter({
+      onCall: () => ({
+        message: { role: 'assistant', content: 'unused' },
+        usage: { input: 0, output: 0 },
+        stopReason: 'end',
+      }),
+    });
+    const b = budget({ maxSteps: 1 });
+    b.consume({}); // now at limit
+    const res = await call({ adapter, model: 'm', messages: msg, budget: b });
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error).toBeInstanceOf(BudgetExhausted);
+      if (res.error instanceof BudgetExhausted) {
+        expect(res.error.code).toBe('budget.steps');
+      }
+    }
+    // Adapter should NOT have been called because pre-check failed
+    expect(adapter.calls).toHaveLength(0);
+  });
+
+  it('call<T> type requires schema output to match T', () => {
+    // Compile-time test only; expectTypeOf is a no-op at runtime
+    type MyShape = { n: number };
+    const goodSchema = jsonSchema<MyShape>(
+      (v): v is MyShape =>
+        typeof v === 'object' && v !== null && 'n' in v && typeof (v as { n: unknown }).n === 'number',
+    );
+    // Valid: schema returns MyShape, call<MyShape> accepts it
+    expectTypeOf(call<MyShape>)
+      .parameter(0)
+      .toMatchTypeOf<{ schema?: typeof goodSchema }>();
   });
 });
