@@ -22,7 +22,6 @@ describe('compress transforms', () => {
   });
 
   const transforms = [
-    ['truncateToolResults', truncateToolResults({ maxChars: 100 })],
     ['windowLast', windowLast({ keep: 1 })],
     ['windowFirst', windowFirst({ keep: 1 })],
     ['orderForCache', orderForCache()],
@@ -132,5 +131,71 @@ describe('dedup', () => {
     const copy = [...msgs];
     await t(msgs, {});
     expect(msgs).toEqual(copy);
+  });
+});
+
+describe('truncateToolResults', () => {
+  it('throws TypeError when maxChars is too small', () => {
+    expect(() => truncateToolResults({ maxChars: 50 })).toThrow(TypeError);
+  });
+
+  it('leaves short tool results unchanged', async () => {
+    const t = truncateToolResults({ maxChars: 1000 });
+    const msgs: Message[] = [
+      { role: 'tool', content: 'short result', toolCallId: 'c1' },
+    ];
+    const out = await t(msgs, {});
+    expect(out).toEqual(msgs);
+  });
+
+  it('truncates long tool results with marker', async () => {
+    const t = truncateToolResults({ maxChars: 100 });
+    const longContent = 'x'.repeat(500);
+    const msgs: Message[] = [
+      { role: 'tool', content: longContent, toolCallId: 'c1' },
+    ];
+    const out = await t(msgs, {});
+    const resultContent = out[0]?.content;
+    expect(typeof resultContent).toBe('string');
+    if (typeof resultContent === 'string') {
+      expect(resultContent.length).toBeLessThanOrEqual(100);
+      expect(resultContent).toContain('truncated');
+      expect(resultContent).toContain('400'); // 500 - (100 - markerLen)
+    }
+  });
+
+  it('preserves toolCallId in truncated message', async () => {
+    const t = truncateToolResults({ maxChars: 100 });
+    const msgs: Message[] = [
+      { role: 'tool', content: 'x'.repeat(500), toolCallId: 'my-id' },
+    ];
+    const out = await t(msgs, {});
+    expect(out[0]).toMatchObject({ toolCallId: 'my-id' });
+  });
+
+  it('does not truncate non-tool messages', async () => {
+    const t = truncateToolResults({ maxChars: 100 });
+    const longContent = 'x'.repeat(500);
+    const msgs: Message[] = [
+      { role: 'user', content: longContent },
+      { role: 'assistant', content: longContent },
+      { role: 'system', content: longContent },
+    ];
+    const out = await t(msgs, {});
+    expect(out[0]?.content).toBe(longContent);
+    expect(out[1]?.content).toBe(longContent);
+    expect(out[2]?.content).toBe(longContent);
+  });
+
+  it('does not mutate input', async () => {
+    const t = truncateToolResults({ maxChars: 100 });
+    const msg: Message = {
+      role: 'tool',
+      content: 'x'.repeat(500),
+      toolCallId: 'c1',
+    };
+    const original = { ...msg };
+    await t([msg], {});
+    expect(msg).toEqual(original);
   });
 });

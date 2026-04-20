@@ -40,9 +40,26 @@ export function dedup(): Transform {
 }
 
 export type TruncateOpts = { maxChars: number };
-export function truncateToolResults(_opts: TruncateOpts): Transform {
-  return async () => {
-    throw new NotImplementedError('compress.truncateToolResults');
+
+export function truncateToolResults(opts: TruncateOpts): Transform {
+  if (opts.maxChars <= 50) {
+    throw new TypeError(
+      `truncateToolResults: maxChars must be > 50 (got ${opts.maxChars})`,
+    );
+  }
+  const { maxChars } = opts;
+  return async (messages) => {
+    return messages.map((msg) => {
+      if (msg.role !== 'tool') return msg;
+      if (msg.content.length <= maxChars) return msg;
+      const dropped = msg.content.length - maxChars;
+      const marker = `…[truncated, ${dropped} chars dropped]`;
+      const sliceLen = Math.max(0, maxChars - marker.length);
+      return {
+        ...msg,
+        content: msg.content.slice(0, sliceLen) + marker,
+      };
+    });
   };
 }
 
