@@ -1,4 +1,3 @@
-import { NotImplementedError } from './errors.ts';
 import type { Message } from './types.ts';
 
 export type Messages = {
@@ -65,19 +64,40 @@ export type ConversationMemory = {
   clear(): void;
 };
 
-export function conversationMemory(_opts: ConversationMemoryOpts): ConversationMemory {
+export function conversationMemory(opts: ConversationMemoryOpts): ConversationMemory {
+  const store: Message[] = [];
+  let latestSummary: string | undefined;
+
   return {
-    append() {
-      throw new NotImplementedError('memory.conversationMemory.append');
+    async append(m) {
+      store.push(m);
+      if (store.length >= opts.summarizeAt) {
+        const keepCount = opts.max - opts.summarizeAt;
+        const toSummarize = store.slice(0, store.length - keepCount);
+        const kept = store.slice(store.length - keepCount);
+        try {
+          const text = await opts.summarizer(toSummarize);
+          latestSummary = text;
+          const summaryMessage: Message = {
+            role: 'system',
+            content: `Summary of prior conversation: ${text}`,
+          };
+          store.length = 0;
+          store.push(summaryMessage, ...kept);
+        } catch {
+          // fail-open: leave store unchanged, do not store summary
+        }
+      }
     },
     messages() {
-      throw new NotImplementedError('memory.conversationMemory.messages');
+      return [...store];
     },
     summary() {
-      throw new NotImplementedError('memory.conversationMemory.summary');
+      return latestSummary;
     },
     clear() {
-      throw new NotImplementedError('memory.conversationMemory.clear');
+      store.length = 0;
+      latestSummary = undefined;
     },
   };
 }
