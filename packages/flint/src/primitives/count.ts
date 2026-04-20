@@ -1,7 +1,14 @@
 import type { ProviderAdapter } from '../adapter.ts';
-import { NotImplementedError } from '../errors.ts';
 import type { Message } from '../types.ts';
+import { approxCount } from './approx-count.ts';
 
-export function count(_messages: Message[], _model: string, _adapter?: ProviderAdapter): number {
-  throw new NotImplementedError('primitives.count');
+export function count(
+  messages: Message[],
+  model: string,
+  adapter?: ProviderAdapter,
+): number {
+  if (adapter?.count) {
+    return adapter.count(messages, model);
+  }
+  return approxCount(messages);
 }
