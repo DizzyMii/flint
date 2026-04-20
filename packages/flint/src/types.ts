@@ -22,7 +22,7 @@ export type Message =
 export type Tool<Input = unknown, Output = unknown> = {
   name: string;
   description: string;
-  input: StandardSchemaV1<Input>;
+  input: StandardSchemaV1<unknown, Input>;
   handler: (input: Input) => Promise<Output> | Output;
 };
 

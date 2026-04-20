@@ -20,7 +20,7 @@ export type RetryValidateOptions<T> = {
   adapter: ProviderAdapter;
   model: string;
   messages: Message[];
-  schema: StandardSchemaV1<T>;
+  schema: StandardSchemaV1<unknown, T>;
   maxAttempts: number;
 };
 export async function retryValidate<T>(_opts: RetryValidateOptions<T>): Promise<Result<T>> {
