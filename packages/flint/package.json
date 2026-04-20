@@ -18,7 +18,8 @@
     "./testing": {
       "types": "./dist/testing/mock-adapter.d.ts",
       "import": "./dist/testing/mock-adapter.js"
-    }
+    },
+    "./safety": { "types": "./dist/safety/index.d.ts", "import": "./dist/safety/index.js" }
   },
   "scripts": {
     "build": "tsup",

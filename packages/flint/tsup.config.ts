@@ -11,6 +11,7 @@ export default defineConfig({
     'src/budget.ts',
     'src/errors.ts',
     'src/testing/mock-adapter.ts',
+    'src/safety/index.ts',
   ],
   format: ['esm'],
   dts: true,
