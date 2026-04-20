@@ -7,13 +7,10 @@ export type PermissionedToolsOptions = {
   requireScopes?: string[];
 };
 
-export function permissionedTools(
-  tools: Tool[],
-  opts: PermissionedToolsOptions,
-): Tool[] {
+export function permissionedTools(tools: Tool[], opts: PermissionedToolsOptions): Tool[] {
   return tools.filter((t) => {
     if (opts.allow && !opts.allow.includes(t.name)) return false;
-    if (opts.deny && opts.deny.includes(t.name)) return false;
+    if (opts.deny?.includes(t.name)) return false;
     if (opts.requireScopes) {
       const scopes = t.permissions?.scopes ?? [];
       if (!opts.requireScopes.every((s) => scopes.includes(s))) return false;

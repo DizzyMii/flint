@@ -6,9 +6,7 @@ export type ApprovalContext<Input> = {
   input: Input;
 };
 
-export type ApprovalResult =
-  | boolean
-  | { approved: boolean; reason?: string };
+export type ApprovalResult = boolean | { approved: boolean; reason?: string };
 
 export type RequireApprovalOptions<Input> = {
   onApprove: (ctx: ApprovalContext<Input>) => Promise<ApprovalResult>;

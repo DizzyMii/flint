@@ -3,13 +3,15 @@ import { pipeline } from '../src/compress.ts';
 import type { Transform } from '../src/compress.ts';
 import type { Message } from '../src/types.ts';
 
-const tagTransform = (tag: string): Transform => async (messages) => {
-  return messages.map((m) =>
-    m.role === 'user' && typeof m.content === 'string'
-      ? { ...m, content: `${m.content}[${tag}]` }
-      : m,
-  );
-};
+const tagTransform =
+  (tag: string): Transform =>
+  async (messages) => {
+    return messages.map((m) =>
+      m.role === 'user' && typeof m.content === 'string'
+        ? { ...m, content: `${m.content}[${tag}]` }
+        : m,
+    );
+  };
 
 describe('compress.pipeline', () => {
   const base: Message[] = [{ role: 'user', content: 'hi' }];

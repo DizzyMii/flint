@@ -16,7 +16,8 @@ export type InjectionDetectionResult = {
 export const injectionPatterns: InjectionPattern[] = [
   {
     name: 'ignore_instructions',
-    regex: /\bignore\s+(?:all\s+|previous\s+|above\s+)?(?:prior\s+)?(?:instructions?|rules?|prompts?)\b/i,
+    regex:
+      /\bignore\s+(?:all\s+|previous\s+|above\s+)?(?:prior\s+)?(?:instructions?|rules?|prompts?)\b/i,
   },
   {
     name: 'override_role',
@@ -36,7 +37,8 @@ export const injectionPatterns: InjectionPattern[] = [
   },
   {
     name: 'leak_prompt',
-    regex: /\b(?:reveal|show|print|dump|repeat)\s+(?:your|the)\s+(?:system\s+)?(?:prompt|instructions?)/i,
+    regex:
+      /\b(?:reveal|show|print|dump|repeat)\s+(?:your|the)\s+(?:system\s+)?(?:prompt|instructions?)/i,
   },
   {
     name: 'untrusted_tag_forgery',

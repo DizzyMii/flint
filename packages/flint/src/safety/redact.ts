@@ -16,9 +16,7 @@ function redactMessage(msg: Message, patterns: RegExp[], replacement: string): M
   }
   // msg.content is ContentPart[] (only user can have this)
   const parts: ContentPart[] = msg.content.map((part) =>
-    part.type === 'text'
-      ? { ...part, text: redactString(part.text, patterns, replacement) }
-      : part,
+    part.type === 'text' ? { ...part, text: redactString(part.text, patterns, replacement) } : part,
   );
   // Since only user role can have ContentPart[], this is safe
   return {

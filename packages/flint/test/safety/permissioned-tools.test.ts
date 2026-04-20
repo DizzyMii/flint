@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { permissionedTools } from '../../src/safety/permissioned-tools.ts';
 import { tool } from '../../src/primitives/tool.ts';
+import { permissionedTools } from '../../src/safety/permissioned-tools.ts';
 import type { StandardSchemaV1 } from '../../src/types.ts';
 
 function anySchema(): StandardSchemaV1<unknown, unknown> {

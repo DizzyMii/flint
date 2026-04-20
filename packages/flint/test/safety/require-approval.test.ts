@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { requireApproval } from '../../src/safety/require-approval.ts';
-import { tool } from '../../src/primitives/tool.ts';
-import { execute } from '../../src/primitives/execute.ts';
 import { FlintError, ToolError } from '../../src/errors.ts';
+import { execute } from '../../src/primitives/execute.ts';
+import { tool } from '../../src/primitives/tool.ts';
+import { requireApproval } from '../../src/safety/require-approval.ts';
 import type { StandardSchemaV1 } from '../../src/types.ts';
 
 function anySchema(): StandardSchemaV1<unknown, unknown> {

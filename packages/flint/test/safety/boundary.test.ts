@@ -4,7 +4,9 @@ import { boundary, untrusted } from '../../src/safety/boundary.ts';
 describe('untrusted', () => {
   it('wraps content with XML-tagged nonce', () => {
     const out = untrusted('malicious?');
-    expect(out).toMatch(/^<untrusted nonce="[0-9a-f]{16}">\nmalicious\?\n<\/untrusted nonce="[0-9a-f]{16}">$/);
+    expect(out).toMatch(
+      /^<untrusted nonce="[0-9a-f]{16}">\nmalicious\?\n<\/untrusted nonce="[0-9a-f]{16}">$/,
+    );
   });
 
   it('uses 16 hex chars (8 bytes) of nonce', () => {
