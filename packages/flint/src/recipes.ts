@@ -80,7 +80,9 @@ export async function retryValidate<T>(options: RetryValidateOptions<T>): Promis
     lastRes = undefined;
   }
 
-  return lastRes ?? { ok: false, error: new Error('retryValidate: maxAttempts exhausted') as never };
+  return (
+    lastRes ?? { ok: false, error: new Error('retryValidate: maxAttempts exhausted') as never }
+  );
 }
 
 export type Critique = { ok: boolean; critique: string };
@@ -130,7 +132,12 @@ export async function summarize(opts: SummarizeOptions): Promise<Result<string>>
     const res = await call({
       adapter,
       model,
-      messages: [{ role: 'user', content: `Summarize the following text concisely, preserving key facts:\n\n${c}` }],
+      messages: [
+        {
+          role: 'user',
+          content: `Summarize the following text concisely, preserving key facts:\n\n${c}`,
+        },
+      ],
     });
     if (!res.ok) return res;
     summaries.push(res.value.message.content);
@@ -141,7 +148,12 @@ export async function summarize(opts: SummarizeOptions): Promise<Result<string>>
   const combineRes = await call({
     adapter,
     model,
-    messages: [{ role: 'user', content: `Combine these chunk summaries into one concise overall summary:\n\n${summaries.join('\n\n---\n\n')}` }],
+    messages: [
+      {
+        role: 'user',
+        content: `Combine these chunk summaries into one concise overall summary:\n\n${summaries.join('\n\n---\n\n')}`,
+      },
+    ],
   });
   if (!combineRes.ok) return combineRes;
   return { ok: true, value: combineRes.value.message.content };

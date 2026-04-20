@@ -50,9 +50,7 @@ function makeFailingSchema(message: string) {
 
 describe('react', () => {
   it('returns ok with final answer on happy path', async () => {
-    const adapter = scriptedAdapter([
-      okResponse('The answer is 42.'),
-    ]);
+    const adapter = scriptedAdapter([okResponse('The answer is 42.')]);
     const result = await react({
       adapter,
       model: 'test-model',
@@ -78,15 +76,17 @@ describe('react', () => {
     });
     const req = adapter.calls[0];
     expect(req).toBeDefined();
-    expect(req!.messages[0]?.role).toBe('system');
-    expect(req!.messages[0]?.content).toContain('ReAct');
-    expect(req!.messages[1]?.role).toBe('user');
-    expect(req!.messages[1]?.content).toBe('Test question');
+    expect(req?.messages[0]?.role).toBe('system');
+    expect(req?.messages[0]?.content).toContain('ReAct');
+    expect(req?.messages[1]?.role).toBe('user');
+    expect(req?.messages[1]?.content).toBe('Test question');
   });
 
   it('propagates adapter error as Result.error', async () => {
     const adapter = mockAdapter({
-      onCall: async () => { throw new Error('network error'); },
+      onCall: async () => {
+        throw new Error('network error');
+      },
     });
     const result = await react({
       adapter,
@@ -103,10 +103,7 @@ describe('react', () => {
 
   it('respects maxSteps by forwarding it to agent', async () => {
     // Each call returns a tool-call to keep iterating, last is a terminal answer
-    const adapter = scriptedAdapter([
-      toolCallResponse('thinking...'),
-      okResponse('final answer'),
-    ]);
+    const adapter = scriptedAdapter([toolCallResponse('thinking...'), okResponse('final answer')]);
     // Use a tool so agent actually runs tool steps
     const searchTool = {
       name: 'search',
@@ -162,10 +159,7 @@ describe('retryValidate', () => {
 
   it('retries on validation failure and succeeds on second attempt', async () => {
     // First: returns invalid JSON (causes ParseError) → second: valid JSON
-    const adapter = scriptedAdapter([
-      okResponse('not-valid-json'),
-      okResponse('{"name":"Bob"}'),
-    ]);
+    const adapter = scriptedAdapter([okResponse('not-valid-json'), okResponse('{"name":"Bob"}')]);
     const schema = makeSchema({ name: 'Bob' });
     const result = await retryValidate({
       adapter,
@@ -182,10 +176,7 @@ describe('retryValidate', () => {
   });
 
   it('appends feedback message after validation failure', async () => {
-    const adapter = scriptedAdapter([
-      okResponse('not-valid-json'),
-      okResponse('{}'),
-    ]);
+    const adapter = scriptedAdapter([okResponse('not-valid-json'), okResponse('{}')]);
     const schema = makeSchema({});
     await retryValidate({
       adapter,
@@ -196,20 +187,16 @@ describe('retryValidate', () => {
     });
     // Second call should have extra messages appended
     const secondCall = adapter.calls[1];
-    expect(secondCall!.messages.length).toBeGreaterThan(1);
+    expect(secondCall?.messages.length).toBeGreaterThan(1);
     // Should contain a user feedback message
-    const userMessages = secondCall!.messages.filter((m) => m.role === 'user');
+    const userMessages = secondCall?.messages.filter((m) => m.role === 'user') ?? [];
     expect(userMessages.length).toBeGreaterThanOrEqual(2);
     const lastUser = userMessages[userMessages.length - 1];
-    expect(lastUser!.content).toContain('validation');
+    expect(lastUser?.content).toContain('validation');
   });
 
   it('returns error after maxAttempts exhausted', async () => {
-    const adapter = scriptedAdapter([
-      okResponse('bad'),
-      okResponse('bad'),
-      okResponse('bad'),
-    ]);
+    const adapter = scriptedAdapter([okResponse('bad'), okResponse('bad'), okResponse('bad')]);
     const schema = makeFailingSchema('must be object');
     const result = await retryValidate({
       adapter,
@@ -224,7 +211,9 @@ describe('retryValidate', () => {
 
   it('immediately returns non-retryable adapter error', async () => {
     const adapter = mockAdapter({
-      onCall: async () => { throw new Error('fatal'); },
+      onCall: async () => {
+        throw new Error('fatal');
+      },
     });
     const schema = makeSchema({});
     const result = await retryValidate({
@@ -243,10 +232,7 @@ describe('retryValidate', () => {
   });
 
   it('does not mutate original messages array', async () => {
-    const adapter = scriptedAdapter([
-      okResponse('bad'),
-      okResponse('{}'),
-    ]);
+    const adapter = scriptedAdapter([okResponse('bad'), okResponse('{}')]);
     const schema = makeSchema({});
     const original = [{ role: 'user' as const, content: 'q' }];
     const originalLen = original.length;
@@ -262,10 +248,7 @@ describe('retryValidate', () => {
 
   it('handles tool-call response by appending feedback and retrying', async () => {
     // First response is a tool call, second is valid JSON
-    const adapter = scriptedAdapter([
-      toolCallResponse(''),
-      okResponse('{"x":1}'),
-    ]);
+    const adapter = scriptedAdapter([toolCallResponse(''), okResponse('{"x":1}')]);
     const schema = makeSchema({ x: 1 });
     const result = await retryValidate({
       adapter,
@@ -301,11 +284,9 @@ describe('reflect', () => {
   });
 
   it('revises when critic rejects and approves on second', async () => {
-    const adapter = scriptedAdapter([
-      okResponse('rough draft'),
-      okResponse('polished draft'),
-    ]);
-    const critic = vi.fn()
+    const adapter = scriptedAdapter([okResponse('rough draft'), okResponse('polished draft')]);
+    const critic = vi
+      .fn()
       .mockResolvedValueOnce({ ok: false, critique: 'too rough' })
       .mockResolvedValueOnce({ ok: true, critique: '' });
     const result = await reflect({
@@ -323,11 +304,9 @@ describe('reflect', () => {
   });
 
   it('appends critique message before revision', async () => {
-    const adapter = scriptedAdapter([
-      okResponse('draft v1'),
-      okResponse('draft v2'),
-    ]);
-    const critic = vi.fn()
+    const adapter = scriptedAdapter([okResponse('draft v1'), okResponse('draft v2')]);
+    const critic = vi
+      .fn()
       .mockResolvedValueOnce({ ok: false, critique: 'needs more detail' })
       .mockResolvedValueOnce({ ok: true, critique: '' });
     await reflect({
@@ -337,15 +316,17 @@ describe('reflect', () => {
       critic,
       maxRevisions: 3,
     });
-    const secondCall = adapter.calls[1]!;
-    const userMessages = secondCall.messages.filter((m) => m.role === 'user');
+    const secondCall = adapter.calls[1];
+    const userMessages = secondCall?.messages.filter((m) => m.role === 'user') ?? [];
     const lastUser = userMessages[userMessages.length - 1];
-    expect(lastUser!.content).toContain('needs more detail');
+    expect(lastUser?.content).toContain('needs more detail');
   });
 
   it('propagates adapter error immediately', async () => {
     const adapter = mockAdapter({
-      onCall: async () => { throw new Error('network down'); },
+      onCall: async () => {
+        throw new Error('network down');
+      },
     });
     const critic = vi.fn();
     const result = await reflect({
@@ -467,10 +448,7 @@ describe('summarize', () => {
   });
 
   it('propagates error from final combine call', async () => {
-    const adapter = scriptedAdapter([
-      okResponse('s1'),
-      okResponse('s2'),
-    ]);
+    const adapter = scriptedAdapter([okResponse('s1'), okResponse('s2')]);
     // Adapter runs out of responses, causing error on combine call
     const result = await summarize({
       adapter,
@@ -490,10 +468,10 @@ describe('summarize', () => {
       text: 'Hello world',
       chunkSize: 1000,
     });
-    const req = adapter.calls[0]!;
-    const userMsg = req.messages.find((m) => m.role === 'user');
-    expect(userMsg!.content).toContain('Hello world');
-    expect(userMsg!.content).toContain('Summarize');
+    const req = adapter.calls[0];
+    const userMsg = req?.messages.find((m) => m.role === 'user');
+    expect(userMsg?.content).toContain('Hello world');
+    expect(userMsg?.content).toContain('Summarize');
   });
 
   it('sends combine prompt with chunk summaries', async () => {
@@ -508,10 +486,10 @@ describe('summarize', () => {
       text: 'abcdeabcde',
       chunkSize: 5,
     });
-    const combineReq = adapter.calls[2]!;
-    const userMsg = combineReq.messages.find((m) => m.role === 'user');
-    expect(userMsg!.content).toContain('chunk1-summary');
-    expect(userMsg!.content).toContain('chunk2-summary');
-    expect(userMsg!.content).toContain('Combine');
+    const combineReq = adapter.calls[2];
+    const userMsg = combineReq?.messages.find((m) => m.role === 'user');
+    expect(userMsg?.content).toContain('chunk1-summary');
+    expect(userMsg?.content).toContain('chunk2-summary');
+    expect(userMsg?.content).toContain('Combine');
   });
 });
