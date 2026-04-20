@@ -2,7 +2,7 @@ import type { NormalizedRequest, ProviderAdapter } from '../adapter.ts';
 import type { Budget } from '../budget.ts';
 import type { Transform } from '../compress.ts';
 import { NotImplementedError } from '../errors.ts';
-import type { Logger, Message, Result, StandardSchemaV1, StopReason, Usage } from '../types.ts';
+import type { Logger, Message, Result, StopReason, Usage } from '../types.ts';
 
 export type CallOptions = Omit<NormalizedRequest, 'signal'> & {
   adapter: ProviderAdapter;
