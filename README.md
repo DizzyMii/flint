@@ -14,7 +14,7 @@ No classes, no chains, no magic. JavaScript is the runtime — Flint gives you w
 - 6 primitives: `call`, `stream`, `validate`, `tool`, `execute`, `count` — [`src/index.ts`](packages/flint/src/index.ts)
 - `agent()` loop with step / token / dollar budget caps — [`src/agent.ts`](packages/flint/src/agent.ts), [`src/budget.ts`](packages/flint/src/budget.ts)
 - 6 compress transforms + `pipeline()` combinator: `dedup`, `windowLast`, `windowFirst`, `truncateToolResults`, `summarize`, `orderForCache` — [`src/compress.ts`](packages/flint/src/compress.ts)
-- 4 recipes: ReAct, retryValidate, reflect, summarize — [`src/recipes.ts`](packages/flint/src/recipes.ts)
+- 4 recipes: `react` (ReAct pattern), `retryValidate`, `reflect`, `summarize` — [`src/recipes.ts`](packages/flint/src/recipes.ts)
 - RAG: chunk, store, retrieve — [`src/rag.ts`](packages/flint/src/rag.ts)
 - Conversation memory with async summarization — [`src/memory.ts`](packages/flint/src/memory.ts)
 - Safety: injection detection, redaction, permissions, approval gates, boundary wrapping — [`src/safety/`](packages/flint/src/safety/)
@@ -35,7 +35,8 @@ No classes, no chains, no magic. JavaScript is the runtime — Flint gives you w
 ## Quick start
 
 ```ts
-import { call, tool, agent, budget } from 'flint';
+import { call, tool, agent } from 'flint';
+import { budget } from 'flint/budget';
 import { anthropicAdapter } from '@flint/adapter-anthropic';
 import * as v from 'valibot'; // any Standard Schema library works
 
@@ -77,4 +78,4 @@ if (out.ok) console.log(out.value.message.content); // "579"
 | `@flint/adapter-openai-compat` | Any OpenAI-compatible endpoint |
 | `@flint/graph` | State-machine agent workflows |
 
-v0 · under development · not yet published. See [`docs/superpowers/specs/`](docs/superpowers/specs/) for design documents.
+See [`docs/superpowers/specs/`](docs/superpowers/specs/) for design documents.
