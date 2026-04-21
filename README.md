@@ -1,36 +1,38 @@
-# flint
+<p align="center">
+  <img src="docs/public/logo.png" width="200" alt="Flint" />
+</p>
 
-Token-efficient agentic TypeScript runtime. Functions, not frameworks. Six core primitives — compose them yourself.
+<h1 align="center">flint</h1>
 
-> v0 · under development · not yet published
+<p align="center">Token-efficient agentic TypeScript runtime</p>
 
-No classes, no chains, no magic. JavaScript is the runtime — Flint gives you well-typed building blocks and stays out of the way.
+<p align="center">
+  <a href="https://img.shields.io/badge/version-v0-orange"><img src="https://img.shields.io/badge/version-v0-orange" alt="v0"></a>
+  <a href="https://img.shields.io/badge/license-MIT-blue"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT"></a>
+  <a href="https://img.shields.io/badge/node-%E2%89%A520-brightgreen"><img src="https://img.shields.io/badge/node-%E2%89%A520-brightgreen" alt="node ≥20"></a>
+  <a href="https://img.shields.io/badge/TypeScript-5.7-blue"><img src="https://img.shields.io/badge/TypeScript-5.7-blue" alt="TypeScript"></a>
+</p>
 
-## What you get
+<p align="center">
+  <a href="https://dizzymii.github.io/flint">Docs</a> ·
+  <a href="https://dizzymii.github.io/flint/primitives/call">API Reference</a> ·
+  <a href="https://dizzymii.github.io/flint/examples/basic-call">Examples</a>
+</p>
 
-### Core (`flint`)
+---
 
-- 1 runtime dependency (`@standard-schema/spec`) — [`packages/flint/package.json`](packages/flint/package.json)
-- 6 primitives: `call`, `stream`, `validate`, `tool`, `execute`, `count` — [`src/index.ts`](packages/flint/src/index.ts)
-- `agent()` loop with step / token / dollar budget caps — [`src/agent.ts`](packages/flint/src/agent.ts), [`src/budget.ts`](packages/flint/src/budget.ts)
-- 6 compress transforms + `pipeline()` combinator: `dedup`, `windowLast`, `windowFirst`, `truncateToolResults`, `summarize`, `orderForCache` — [`src/compress.ts`](packages/flint/src/compress.ts)
-- 4 recipes: `react` (ReAct pattern), `retryValidate`, `reflect`, `summarize` — [`src/recipes.ts`](packages/flint/src/recipes.ts)
-- RAG: chunk, store, retrieve — [`src/rag.ts`](packages/flint/src/rag.ts)
-- Conversation memory with async summarization — [`src/memory.ts`](packages/flint/src/memory.ts)
-- Safety: injection detection, redaction, permissions, approval gates, boundary wrapping — [`src/safety/`](packages/flint/src/safety/)
+> **v0 · under development · not yet published to npm**
 
-### Adapters (zero runtime dependencies each)
+Six primitives. One agent loop. No magic. **Flint** gives you well-typed building blocks for AI agents in TypeScript — and stays out of the way. JavaScript is the runtime; Flint gives you the tools.
 
-- `@flint/adapter-anthropic` — prompt-cache aware, pure `fetch` + `ReadableStream`
-- `@flint/adapter-openai-compat` — any OpenAI-compatible endpoint
+## Install
 
-### Graph
+```sh
+npm install flint @flint/adapter-anthropic
+```
 
-- `@flint/graph` — state-machine workflows with memory checkpointing, zero runtime deps
-
-### Platform
-
-- Node 20+ · Web API primitives only (`fetch`, `ReadableStream`, `TextDecoder`)
+> Not on npm yet. Install from the repo during v0:
+> `npm install github:DizzyMii/flint`
 
 ## Quick start
 
@@ -69,6 +71,32 @@ const out = await agent({
 if (out.ok) console.log(out.value.message.content); // "579"
 ```
 
+## What you get
+
+### Core (`flint`)
+
+- 1 runtime dependency (`@standard-schema/spec`)
+- 6 primitives: `call`, `stream`, `validate`, `tool`, `execute`, `count`
+- `agent()` loop with step / token / dollar budget caps
+- 6 compress transforms + `pipeline()` combinator: `dedup`, `windowLast`, `windowFirst`, `truncateToolResults`, `summarize`, `orderForCache`
+- 4 recipes: `react` (ReAct pattern), `retryValidate`, `reflect`, `summarize`
+- RAG: chunk, store, retrieve
+- Conversation memory with async summarization
+- Safety: injection detection, redaction, permissions, approval gates, boundary wrapping
+
+### Adapters (zero runtime dependencies each)
+
+- `@flint/adapter-anthropic` — prompt-cache aware, pure `fetch` + `ReadableStream`
+- `@flint/adapter-openai-compat` — any OpenAI-compatible endpoint (OpenAI, Groq, Ollama, DeepSeek, Together)
+
+### Graph
+
+- `@flint/graph` — state-machine workflows with memory checkpointing
+
+### Platform
+
+- Node 20+ · Web API primitives only (`fetch`, `ReadableStream`, `TextDecoder`)
+
 ## Packages
 
 | Package | Description |
@@ -78,4 +106,30 @@ if (out.ok) console.log(out.value.message.content); // "579"
 | `@flint/adapter-openai-compat` | Any OpenAI-compatible endpoint |
 | `@flint/graph` | State-machine agent workflows |
 
-See [`docs/superpowers/specs/`](docs/superpowers/specs/) for design documents.
+## Why Flint
+
+- **One dependency** — `@standard-schema/spec` only. No transitive framework sprawl.
+- **No classes, no chains** — plain functions that compose naturally.
+- **Standard Schema** — bring Zod, Valibot, ArkType, or any compatible library.
+- **Budget-aware** — every agent loop enforces step, token, and dollar limits.
+- **Streaming first** — `AsyncIterable<StreamChunk>` throughout.
+- **Safety in core** — injection detection, redaction, and approval gates are not an afterthought.
+- **Results, not exceptions** — `Promise<Result<T>>` everywhere; no try/catch at the call site.
+
+## Documentation
+
+Full documentation at **[dizzymii.github.io/flint](https://dizzymii.github.io/flint)**:
+
+- [Guide](https://dizzymii.github.io/flint/guide/) — installation, quick start, v0 stability notes
+- [Primitives](https://dizzymii.github.io/flint/primitives/call) — `call`, `stream`, `validate`, `tool`, `execute`, `count`, `agent`
+- [Features](https://dizzymii.github.io/flint/features/budget) — budget, compress, memory, RAG, recipes, safety, graph
+- [Adapters](https://dizzymii.github.io/flint/adapters/anthropic) — Anthropic, OpenAI-compatible, custom
+- [Examples](https://dizzymii.github.io/flint/examples/basic-call) — runnable code examples
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+MIT — see [LICENSE](LICENSE).
