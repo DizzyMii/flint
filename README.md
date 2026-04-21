@@ -2,8 +2,6 @@
   <img src="flint.png" width="100%" alt="Flint" />
 </p>
 
-<h1 align="center">flint</h1>
-
 <p align="center">Token-efficient agentic TypeScript runtime</p>
 
 <p align="center">
