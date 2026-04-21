@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="flint.png" width="300" alt="Flint" />
+  <img src="flint.png" width="100%" alt="Flint" />
 </p>
 
 <h1 align="center">flint</h1>
