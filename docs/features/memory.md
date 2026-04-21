@@ -205,6 +205,6 @@ const myAgent = agent({
 
 ## See Also
 
-- [Compress & Pipeline](../primitives/compress.md) — token-level compression and message pipeline transforms
+- [Compress & Pipeline](./compress.md) — token-level compression and message pipeline transforms
 - [RAG](./rag.md) — retrieve relevant documents and inject them into the context window
-- [Recipes](../guide/recipes.md) — end-to-end patterns combining memory with agents
+- [Recipes](./recipes.md) — end-to-end patterns combining memory with agents

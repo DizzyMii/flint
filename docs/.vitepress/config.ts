@@ -4,6 +4,7 @@ export default defineConfig({
   title: 'Flint',
   description: 'Token-efficient agentic TypeScript runtime',
   base: '/flint/',
+  srcExclude: ['superpowers/**'],
 
   head: [
     ['link', { rel: 'icon', type: 'image/png', href: '/flint/logo.png' }],
