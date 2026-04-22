@@ -85,9 +85,10 @@ type OpenAIStreamChunk = {
 
 function mapStopReason(
   reason: string | null | undefined,
-): 'end' | 'tool_call' | 'max_tokens' | 'stop_sequence' {
+): 'end' | 'tool_call' | 'max_tokens' {
   if (reason === 'tool_calls') return 'tool_call';
   if (reason === 'length') return 'max_tokens';
+  // OpenAI reports both natural end and stop-sequence hits as 'stop' — cannot distinguish
   return 'end';
 }
 
@@ -171,7 +172,7 @@ function buildBody(req: NormalizedRequest, streaming: boolean): OpenAIRequestBod
 // SSE parsing
 // ---------------------------------------------------------------------------
 
-async function* parseSSE(body: ReadableStream<Uint8Array>): AsyncGenerator<string> {
+async function* parseSSE(body: ReadableStream<Uint8Array>): AsyncGenerator<{ event: string | null; data: string }> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
@@ -183,10 +184,24 @@ async function* parseSSE(body: ReadableStream<Uint8Array>): AsyncGenerator<strin
       const parts = buffer.split('\n\n');
       buffer = parts.pop() ?? '';
       for (const part of parts) {
+        let event: string | null = null;
+        let data = '';
         for (const line of part.split('\n')) {
-          if (line.startsWith('data: ')) yield line.slice(6).trim();
+          if (line.startsWith('event: ')) event = line.slice(7).trim();
+          else if (line.startsWith('data: ')) data = line.slice(6).trim();
         }
+        if (data) yield { event, data };
       }
+    }
+    // Flush any remaining buffer content after stream closes
+    if (buffer.trim()) {
+      let event: string | null = null;
+      let data = '';
+      for (const line of buffer.split('\n')) {
+        if (line.startsWith('event: ')) event = line.slice(7).trim();
+        else if (line.startsWith('data: ')) data = line.slice(6).trim();
+      }
+      if (data) yield { event, data };
     }
   } finally {
     reader.releaseLock();
@@ -286,7 +301,12 @@ export function openaiCompatAdapter(opts: OpenAICompatAdapterOptions): ProviderA
       let promptTokens = 0;
       let completionTokens = 0;
 
-      for await (const data of parseSSE(response.body)) {
+      for await (const { event, data } of parseSSE(response.body)) {
+        if (event === 'error') {
+          let parsed: { error?: { message?: string } } = {};
+          try { parsed = JSON.parse(data) as { error?: { message?: string } }; } catch { /* use raw data */ }
+          throw new AdapterError(parsed.error?.message ?? data, { code: 'adapter.stream', cause: parsed });
+        }
         if (data === '[DONE]') break;
         let chunk: OpenAIStreamChunk;
         try { chunk = JSON.parse(data) as OpenAIStreamChunk; } catch { continue; }
