@@ -249,6 +249,49 @@ if (res.ok) {
 
 ---
 
+## react() options
+
+```ts
+function react(options: {
+  adapter: ProviderAdapter;
+  model: string;
+  tools: Tool[];
+  budget: Budget;
+  systemPrompt?: string;
+}): (question: string) => Promise<Result<string>>
+```
+
+`react()` returns a function. Call it with a question to run the ReAct (Reason + Act) loop.
+
+## retryValidate() options
+
+```ts
+function retryValidate<T>(options: {
+  adapter: ProviderAdapter;
+  model: string;
+  messages: Message[];
+  schema: StandardSchemaV1<unknown, T>;
+  budget: Budget;
+  maxRetries?: number; // default: 3
+}): Promise<Result<T>>
+```
+
+On validation failure, sends the validation error back to the model and retries. Useful when structured output requires a few attempts.
+
+## reflect() options
+
+```ts
+function reflect(options: {
+  adapter: ProviderAdapter;
+  model: string;
+  response: string;
+  instruction?: string;  // default: "Review and improve the response"
+  budget: Budget;
+}): Promise<Result<string>>
+```
+
+Sends the response back to the model with a reflection prompt. Returns the improved version.
+
 ## See also
 
 - [agent()](/primitives/agent) — the agentic loop recipes are built on
@@ -256,3 +299,4 @@ if (res.ok) {
 - [tool()](/primitives/tool) — define tools for `react()`
 - [Budget](/features/budget) — control cost and step limits
 - [Safety](/features/safety) — inject safety checks into tool calls
+- [Examples: ReAct Pattern](/examples/react-pattern)

@@ -144,9 +144,64 @@ const redactSecrets: Transform = async (messages) => {
 };
 ```
 
+## compress() pipeline signature
+
+```ts
+type Transform = (messages: Message[], ctx: CompressCtx) => Promise<Message[]> | Message[];
+type CompressCtx = { budget?: Budget; model: string };
+```
+
+## Available transforms
+
+| Transform | Description |
+|-----------|-------------|
+| `dedup()` | Remove consecutive duplicate messages |
+| `windowLast(n)` | Keep only the last N messages |
+| `windowFirst(n)` | Keep the first N messages (preserve system prompt) |
+| `truncateToolResults(maxLen)` | Truncate tool result content to maxLen characters |
+| `orderForCache()` | Re-order messages to maximize cache hits (system prompt first, stable content before dynamic) |
+| `summarize(adapter, model)` | Replace old messages with an LLM-generated summary |
+
+## pipeline() combinator
+
+Chain multiple transforms with `pipeline()`:
+
+```ts
+import { pipeline, dedup, truncateToolResults, orderForCache } from 'flint/compress';
+
+const compress = pipeline(
+  dedup(),
+  truncateToolResults(2000),
+  orderForCache(),
+);
+
+const res = await call({ ..., compress });
+```
+
+Transforms run left-to-right. Each receives the output of the previous.
+
+## orderForCache() and prompt caching
+
+`orderForCache()` moves the system message and static tool definitions to the top of the message list, where the Anthropic adapter adds cache breakpoints. Use it when you have a large, stable system prompt.
+
+## truncateToolResults() for large tool outputs
+
+Large tool results (HTML pages, file contents, API responses) can fill the context window. Truncate them:
+
+```ts
+import { truncateToolResults } from 'flint/compress';
+
+const compress = truncateToolResults(4000); // keep first 4000 chars of each tool result
+```
+
+## Common mistakes
+
+::: warning summarize() makes an LLM call
+`summarize()` sends a request to the LLM to produce the summary. It consumes tokens and costs money. Don't use it in every call — use it when the message list grows past a threshold.
+:::
+
 ## See also
 
-- [call()](/primitives/call) — accepts `compress` option
-- [agent()](/primitives/agent) — applies compress before each step
-- [Memory](/features/memory) — auto-summarizing conversation memory
-- [Safety](/features/safety) — `redact()` for output redaction
+- [Memory](/features/memory) — higher-level memory with auto-summarization
+- [call()](/primitives/call) — compress option
+- [agent()](/primitives/agent) — compress option applies to every step

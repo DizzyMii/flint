@@ -90,8 +90,41 @@ await agent({ ..., budget: sessionBudget });
 await agent({ ..., budget: sessionBudget }); // continues depleting the same budget
 ```
 
+## Reusing a budget across calls
+
+The `budget` object is stateful. Pass the same instance to multiple `call()` or `agent()` calls to enforce a cumulative cap:
+
+```ts
+const sessionBudget = budget({ maxDollars: 1.00 });
+
+// Each call consumes from the same pool
+const r1 = await agent({ ..., budget: sessionBudget });
+const r2 = await agent({ ..., budget: sessionBudget });
+
+console.log('Remaining:', sessionBudget.remaining());
+// → { dollars: 0.78 } (if both calls spent $0.11 and $0.11)
+```
+
+## budget() throws on invalid options
+
+`budget()` requires at least one limit. Passing an empty object throws:
+
+```ts
+budget({}); // TypeError: budget: at least one of maxSteps, maxTokens, or maxDollars must be set
+```
+
+## Dollar cost availability
+
+`cost` is only available in `CallOutput` / `AgentOutput` if the adapter reports it. The Anthropic adapter always reports cost. If `adapter.capabilities.cost` is false, `cost` will be `undefined` and `maxDollars` will never be exhausted.
+
+## Common mistakes
+
+::: warning budget is required for agent()
+`agent()` requires a `budget` argument. There's no default — this is intentional. Agents without budget limits can run indefinitely.
+:::
+
 ## See also
 
-- [agent()](/primitives/agent) — `budget` is required
-- [call()](/primitives/call) — optional budget
-- [Errors](/features/safety) — `BudgetExhausted` type
+- [agent()](/primitives/agent) — uses budget for loop control
+- [call()](/primitives/call) — optional budget for single calls
+- [Error Types](/reference/errors) — BudgetExhausted

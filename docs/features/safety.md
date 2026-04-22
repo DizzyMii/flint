@@ -346,9 +346,65 @@ const messages = [
 
 ---
 
+## detectInjection() signature
+
+```ts
+function detectInjection(text: string): { score: number; matches: string[] }
+```
+
+`score` is 0–1. A score > 0.5 is a likely injection attempt. `matches` lists the patterns that fired.
+
+## redact() signature
+
+```ts
+function redact(text: string, patterns?: RegExp[]): string
+```
+
+Built-in patterns detected: API keys (Anthropic, OpenAI, AWS, GitHub formats), email addresses, credit card numbers, SSNs, private key blocks, JWT tokens. Pass custom `patterns` to extend.
+
+## requireApproval() signature
+
+```ts
+function requireApproval(
+  tools: Tool[],
+  approver: (toolName: string, input: unknown) => Promise<boolean>
+): Tool[]
+```
+
+Returns wrapped tools. Before each execution, calls `approver`. If it returns `false`, the tool returns `"Tool execution denied by user"`.
+
+## permissionedTools() signature
+
+```ts
+function permissionedTools(
+  tools: Tool[],
+  policy: (tool: Tool) => boolean
+): Tool[]
+```
+
+Filters tools by a policy function. Use with `tool.permissions` to build role-based tool access:
+
+```ts
+const userTools = permissionedTools(allTools, (t) => !t.permissions?.destructive);
+```
+
+## trustBoundary() signature
+
+```ts
+function trustBoundary(
+  adapter: ProviderAdapter,
+  options: { threshold?: number } // default 0.7
+): ProviderAdapter
+```
+
+Returns a wrapped adapter. After each LLM response, runs `detectInjection()` on the content. If `score >= threshold`, throws `AdapterError`.
+
 ## See also
 
 - [tool()](/primitives/tool) — define tools with `permissions` metadata
 - [agent()](/primitives/agent) — pass filtered/wrapped tools to the agent loop
 - [Compress & Pipeline](/features/compress) — apply `redact()` as a message transform
 - [Recipes](/features/recipes) — higher-level patterns that compose with safety utilities
+- [FAQ: What is prompt injection detection?](/guide/faq#what-is-prompt-injection-detection)
+- [Tool Approval Example](/examples/tool-approval)
+- [Error Types](/reference/errors) — AdapterError

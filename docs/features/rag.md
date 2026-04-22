@@ -283,7 +283,53 @@ console.log(await answer('What is Flint?'));
 
 ---
 
+## chunk() options
+
+```ts
+function chunk(text: string, options?: { size?: number; overlap?: number }): Chunk[]
+
+type Chunk = { text: string; index: number };
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `size` | `512` | Target chunk size in characters |
+| `overlap` | `64` | Characters of overlap between adjacent chunks |
+
+Overlap helps retrieval: a sentence split across chunks still appears in full in at least one chunk.
+
+## EmbeddingStore interface
+
+```ts
+type EmbeddingStore = {
+  add(chunks: Chunk[], embedder: (text: string) => Promise<number[]>): Promise<void>;
+  query(embedding: number[], topK: number): Promise<Array<{ text: string; score: number }>>;
+};
+```
+
+Implement this to use any vector database. See [FAQ: Does Flint include a vector database?](/guide/faq#does-flint-include-a-vector-database)
+
+## retrieve() options
+
+```ts
+function retrieve(
+  store: EmbeddingStore,
+  query: string,
+  embedder: (text: string) => Promise<number[]>,
+  options?: { topK?: number }
+): Promise<Array<{ text: string; score: number }>>
+```
+
+`score` is the cosine similarity — 1.0 is identical, 0.0 is orthogonal. Filter by score threshold for quality control:
+
+```ts
+const results = await retrieve(store, query, embed, { topK: 10 });
+const relevant = results.filter(r => r.score > 0.7);
+```
+
 ## See Also
 
 - [Memory](./memory.md) — conversation history and scratchpad for injecting retrieved context
 - [call()](../primitives/call.md) — the low-level LLM call primitive used in the pipeline example
+- [Example: RAG Pipeline](/examples/rag-pipeline)
+- [FAQ: How does Flint handle RAG?](/guide/faq#how-does-flint-handle-rag)

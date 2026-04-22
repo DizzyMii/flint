@@ -298,6 +298,60 @@ await store.delete(runId);
 
 ---
 
+## graph() API summary
+
+```ts
+// Build
+const g = graph<State>()
+  .node(name, handler)
+  .edge(from, to | conditionFn)
+  .fanOut(from, [to1, to2])
+  .fanIn([from1, from2], to)
+  .start(nodeName);
+
+// Run
+const result = await g.run(initialState);
+const events = g.runStream(initialState, options?);
+```
+
+## Edge conditions
+
+```ts
+// Static edge
+.edge('classify', 'next-node')
+
+// Conditional edge — function receives current state
+.edge('classify', (state) => state.category === 'A' ? 'node-a' : 'node-b')
+
+// Terminal edge
+.edge('final-node', '__end__')
+```
+
+## runStream() events
+
+```ts
+type GraphEvent<State> =
+  | { type: 'node_start'; node: string; state: State }
+  | { type: 'node_complete'; node: string; state: State; duration: number }
+  | { type: 'workflow_complete'; state: State }
+  | { type: 'workflow_error'; node: string; error: Error; state: State };
+```
+
+## Checkpointing
+
+```ts
+const events = g.runStream(initialState, {
+  onCheckpoint: async (node, state) => {
+    // Called after each node_complete — save to resume later
+    await db.save(`checkpoint:${node}`, state);
+  },
+});
+
+// Resume from a saved checkpoint
+const savedState = await db.load('checkpoint:research');
+const resumeEvents = g.runStream(savedState, { startFrom: 'synthesize' });
+```
+
 ## See also
 
 - [agent()](/primitives/agent) — single-agent loop; use inside node functions
@@ -305,3 +359,6 @@ await store.delete(runId);
 - [Budget](/features/budget) — `RunContext` requires a budget
 - [Safety](/features/safety) — apply safety utilities to tools used inside nodes
 - [Recipes](/features/recipes) — simpler multi-step patterns without graph DSL overhead
+- [Example: Graph Workflow](/examples/graph-workflow)
+- [FAQ: When should I use graph vs agent()?](/guide/faq#when-should-i-use-flintgraph-vs-agent)
+- [Landlord](/landlord/) — for multi-agent parallel workflows

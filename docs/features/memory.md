@@ -214,8 +214,41 @@ const out = await agent({
 
 ---
 
+## Which memory primitive to use
+
+| Primitive | Use when |
+|-----------|---------|
+| `messages()` | You want a simple array of messages with manual management |
+| `scratchpad()` | You need free-form text scratch space for the agent's working notes |
+| `conversationMemory()` | You want automatic summarization for long-running conversations |
+
+## conversationMemory() options
+
+```ts
+type ConversationMemoryOptions = {
+  adapter: ProviderAdapter;
+  model: string;         // model used for auto-summarization
+  maxMessages: number;   // trigger summarization when history exceeds this count
+  keepLast: number;      // messages to keep verbatim after summarization
+};
+```
+
+## Auto-summarization trigger
+
+Summarization happens when `memory.add()` is called and `messages().length >= maxMessages`. It:
+1. Takes the oldest `messages.length - keepLast` messages
+2. Calls the LLM to summarize them
+3. Replaces them with a single system message containing the summary
+4. Retains the last `keepLast` messages verbatim
+
+## Thread safety
+
+`conversationMemory()` is not thread-safe. Don't call `memory.add()` concurrently from multiple async paths.
+
 ## See Also
 
 - [Compress & Pipeline](./compress.md) — token-level compression and message pipeline transforms
 - [RAG](./rag.md) — retrieve relevant documents and inject them into the context window
 - [Recipes](./recipes.md) — end-to-end patterns combining memory with agents
+- [agent()](/primitives/agent) — inject memory.messages() as agent messages
+- [FAQ: multi-turn conversation](/guide/faq#can-i-reuse-a-budget-across-multiple-agent-calls)
