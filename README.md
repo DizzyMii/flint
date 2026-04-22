@@ -28,6 +28,75 @@ Six primitives. One agent loop. No magic. **Flint** gives you well-typed buildin
 npm install flint @flint/adapter-anthropic
 ```
 
+## Setup
+
+### API key
+
+Flint's Anthropic adapter reads your API key from the environment:
+
+```sh
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Or use a `.env` file with `dotenv`:
+
+```sh
+npm install dotenv
+```
+
+```ts
+import 'dotenv/config';
+import { anthropicAdapter } from '@flint/adapter-anthropic';
+
+const adapter = anthropicAdapter({ apiKey: process.env.ANTHROPIC_API_KEY! });
+```
+
+### TypeScript config
+
+Flint requires `moduleResolution: "bundler"` (or `"node16"` / `"nodenext"`) and `strict: true`. Minimum `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "outDir": "dist"
+  }
+}
+```
+
+### ESM
+
+Flint is ESM-only. Add `"type": "module"` to your `package.json`:
+
+```json
+{
+  "type": "module"
+}
+```
+
+If you're using a bundler (Vite, esbuild, tsup) this is handled automatically.
+
+### Verify your setup
+
+Run this snippet to confirm everything is wired up:
+
+```ts
+import { call } from 'flint';
+import { anthropicAdapter } from '@flint/adapter-anthropic';
+
+const adapter = anthropicAdapter({ apiKey: process.env.ANTHROPIC_API_KEY! });
+const res = await call({
+  adapter,
+  model: 'claude-haiku-4-5-20251001',
+  messages: [{ role: 'user', content: 'Reply with the single word: ready' }],
+});
+console.log(res.ok ? res.value.message.content : res.error.message);
+// → "ready"
+```
+
 ## Quick start
 
 ```ts
