@@ -68,15 +68,15 @@ if (out.ok) console.log(out.value.message.content); // "579"
 ### Multi-agent orchestration
 
 ```ts
-import { orchestrate } from '@flint/landlord';
-import { fileTool, bashTool } from '@flint/landlord/tools';
+import { orchestrate } from 'landlord';
+import { standardTools } from 'landlord/tools';
 import { anthropicAdapter } from '@flint/adapter-anthropic';
 
 const adapter = anthropicAdapter({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
 const result = await orchestrate(
   'Build a CLI tool that fetches exchange rates and converts currencies',
-  (workDir) => [fileTool(workDir), bashTool(workDir)],
+  (workDir) => standardTools(workDir),
   { adapter, landlordModel: 'claude-opus-4-7', tenantModel: 'claude-sonnet-4-6' },
 );
 
@@ -104,7 +104,7 @@ if (result.ok) {
 - `@flint/adapter-anthropic` — prompt-cache aware, pure `fetch` + `ReadableStream`
 - `@flint/adapter-openai-compat` — any OpenAI-compatible endpoint (OpenAI, Groq, Ollama, DeepSeek, Together)
 
-### Landlord (`@flint/landlord`)
+### Landlord (`landlord`)
 
 Multi-agent orchestrator that decomposes a natural-language prompt into a dependency-ordered plan and runs each sub-task as an isolated tenant agent.
 
@@ -129,7 +129,7 @@ Multi-agent orchestrator that decomposes a natural-language prompt into a depend
 | `@flint/adapter-anthropic` | Anthropic Messages API — prompt-cache aware |
 | `@flint/adapter-openai-compat` | Any OpenAI-compatible endpoint |
 | `@flint/graph` | State-machine agent workflows |
-| `@flint/landlord` | Multi-agent orchestrator: decompose, tenant agents, parallel dispatch |
+| `landlord` | Multi-agent orchestrator: decompose, tenant agents, parallel dispatch |
 
 ## Why Flint
 
