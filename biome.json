@@ -2,7 +2,16 @@
   "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
   "organizeImports": { "enabled": true },
   "files": {
-    "ignore": ["dist", "node_modules", "coverage", ".changeset", "553e9d76"]
+    "ignore": [
+      "dist",
+      "node_modules",
+      "coverage",
+      ".changeset",
+      "553e9d76",
+      "13dd73a5",
+      "7c87085c",
+      "landlord-output"
+    ]
   },
   "formatter": {
     "enabled": true,

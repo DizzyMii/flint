@@ -1,9 +1,9 @@
-import { describe, expect, it, beforeEach, afterEach } from 'vitest';
-import { fileReadTool, fileWriteTool } from '../../src/tools/file.ts';
-import { execute } from 'flint';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { execute } from 'flint';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { fileReadTool, fileWriteTool } from '../../src/tools/file.ts';
 
 describe('fileReadTool / fileWriteTool', () => {
   let workDir: string;

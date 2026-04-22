@@ -83,9 +83,7 @@ type OpenAIStreamChunk = {
 // Stop reason mapping
 // ---------------------------------------------------------------------------
 
-function mapStopReason(
-  reason: string | null | undefined,
-): 'end' | 'tool_call' | 'max_tokens' {
+function mapStopReason(reason: string | null | undefined): 'end' | 'tool_call' | 'max_tokens' {
   if (reason === 'tool_calls') return 'tool_call';
   if (reason === 'length') return 'max_tokens';
   // OpenAI reports both natural end and stop-sequence hits as 'stop' — cannot distinguish
@@ -111,8 +109,12 @@ function normalizeMessages(messages: Message[]): OpenAIMessage[] {
       } else {
         const parts: OpenAIContentPart[] = msg.content.map((part: ContentPart) => {
           if (part.type === 'text') return { type: 'text' as const, text: part.text };
-          if (part.type === 'image') return { type: 'image_url' as const, image_url: { url: part.url } };
-          return { type: 'image_url' as const, image_url: { url: `data:${part.mediaType};base64,${part.data}` } };
+          if (part.type === 'image')
+            return { type: 'image_url' as const, image_url: { url: part.url } };
+          return {
+            type: 'image_url' as const,
+            image_url: { url: `data:${part.mediaType};base64,${part.data}` },
+          };
         });
         out.push({ role: 'user', content: parts });
       }
@@ -138,7 +140,6 @@ function normalizeMessages(messages: Message[]): OpenAIMessage[] {
 
     if (msg.role === 'tool') {
       out.push({ role: 'tool', content: msg.content, tool_call_id: msg.toolCallId });
-      continue;
     }
   }
 
@@ -172,7 +173,9 @@ function buildBody(req: NormalizedRequest, streaming: boolean): OpenAIRequestBod
 // SSE parsing
 // ---------------------------------------------------------------------------
 
-async function* parseSSE(body: ReadableStream<Uint8Array>): AsyncGenerator<{ event: string | null; data: string }> {
+async function* parseSSE(
+  body: ReadableStream<Uint8Array>,
+): AsyncGenerator<{ event: string | null; data: string }> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
@@ -214,13 +217,24 @@ async function* parseSSE(body: ReadableStream<Uint8Array>): AsyncGenerator<{ eve
 
 async function throwHttpError(response: Response, label: string): Promise<never> {
   let errorBody: unknown;
-  try { errorBody = await response.json(); } catch { errorBody = null; }
+  try {
+    errorBody = await response.json();
+  } catch {
+    errorBody = null;
+  }
   const msg =
-    errorBody != null && typeof errorBody === 'object' && 'error' in errorBody &&
-    errorBody.error != null && typeof errorBody.error === 'object' && 'message' in errorBody.error
+    errorBody != null &&
+    typeof errorBody === 'object' &&
+    'error' in errorBody &&
+    errorBody.error != null &&
+    typeof errorBody.error === 'object' &&
+    'message' in errorBody.error
       ? String((errorBody.error as { message: unknown }).message)
       : `${label} ${response.status}`;
-  throw new AdapterError(msg, { code: `adapter.http.${response.status}`, cause: { status: response.status, body: errorBody } });
+  throw new AdapterError(msg, {
+    code: `adapter.http.${response.status}`,
+    cause: { status: response.status, body: errorBody },
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -236,7 +250,7 @@ export function openaiCompatAdapter(opts: OpenAICompatAdapterOptions): ProviderA
       'content-type': 'application/json',
       ...(opts.defaultHeaders ?? {}),
     };
-    if (opts.apiKey) headers['authorization'] = `Bearer ${opts.apiKey}`;
+    if (opts.apiKey) headers.authorization = `Bearer ${opts.apiKey}`;
     return headers;
   }
 
@@ -267,7 +281,11 @@ export function openaiCompatAdapter(opts: OpenAICompatAdapterOptions): ProviderA
       if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
         for (const tc of choice.message.tool_calls) {
           let parsedArgs: unknown = {};
-          try { parsedArgs = JSON.parse(tc.function.arguments); } catch { parsedArgs = {}; }
+          try {
+            parsedArgs = JSON.parse(tc.function.arguments);
+          } catch {
+            parsedArgs = {};
+          }
           toolCalls.push({ id: tc.id, name: tc.function.name, arguments: parsedArgs });
         }
       }
@@ -304,13 +322,27 @@ export function openaiCompatAdapter(opts: OpenAICompatAdapterOptions): ProviderA
       for await (const { event, data } of parseSSE(response.body)) {
         if (event === 'error') {
           let parsed: { error?: { message?: string } } = {};
-          try { parsed = JSON.parse(data) as { error?: { message?: string } }; } catch { /* use raw data */ }
-          throw new AdapterError(parsed.error?.message ?? data, { code: 'adapter.stream', cause: parsed });
+          try {
+            parsed = JSON.parse(data) as { error?: { message?: string } };
+          } catch {
+            /* use raw data */
+          }
+          throw new AdapterError(parsed.error?.message ?? data, {
+            code: 'adapter.stream',
+            cause: parsed,
+          });
         }
         if (data === '[DONE]') break;
         let chunk: OpenAIStreamChunk;
-        try { chunk = JSON.parse(data) as OpenAIStreamChunk; } catch { continue; }
-        if (chunk.usage) { promptTokens = chunk.usage.prompt_tokens; completionTokens = chunk.usage.completion_tokens; }
+        try {
+          chunk = JSON.parse(data) as OpenAIStreamChunk;
+        } catch {
+          continue;
+        }
+        if (chunk.usage) {
+          promptTokens = chunk.usage.prompt_tokens;
+          completionTokens = chunk.usage.completion_tokens;
+        }
         const choice = chunk.choices[0];
         if (!choice) continue;
         if (choice.finish_reason) finalFinishReason = choice.finish_reason;
@@ -319,7 +351,8 @@ export function openaiCompatAdapter(opts: OpenAICompatAdapterOptions): ProviderA
         if (delta.tool_calls) {
           for (const tc of delta.tool_calls) {
             const idx = tc.index;
-            if (!toolStash.has(idx)) toolStash.set(idx, { id: tc.id ?? '', name: tc.function?.name ?? '', args: '' });
+            if (!toolStash.has(idx))
+              toolStash.set(idx, { id: tc.id ?? '', name: tc.function?.name ?? '', args: '' });
             const stash = toolStash.get(idx);
             if (stash) {
               if (tc.id) stash.id = tc.id;
@@ -332,8 +365,15 @@ export function openaiCompatAdapter(opts: OpenAICompatAdapterOptions): ProviderA
 
       for (const [, stash] of toolStash) {
         let parsedArgs: unknown = {};
-        try { parsedArgs = JSON.parse(stash.args); } catch { parsedArgs = {}; }
-        yield { type: 'tool_call', call: { id: stash.id, name: stash.name, arguments: parsedArgs } };
+        try {
+          parsedArgs = JSON.parse(stash.args);
+        } catch {
+          parsedArgs = {};
+        }
+        yield {
+          type: 'tool_call',
+          call: { id: stash.id, name: stash.name, arguments: parsedArgs },
+        };
       }
 
       yield { type: 'usage', usage: { input: promptTokens, output: completionTokens } };

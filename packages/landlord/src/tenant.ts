@@ -1,7 +1,7 @@
 import { agent, tool } from 'flint';
+import type { ProviderAdapter, Result, StandardSchemaV1, Tool } from 'flint';
 import { budget as makeBudget } from 'flint/budget';
 import type { Budget } from 'flint/budget';
-import type { ProviderAdapter, Result, StandardSchemaV1, Tool } from 'flint';
 import type { Checkpoint, Contract } from './contract.ts';
 import { validateCheckpoint } from './validate.ts';
 
@@ -29,21 +29,19 @@ function buildSystemPrompt(
   sharedArtifacts: Record<string, unknown> | undefined,
   retryContext: string | undefined,
 ): string {
-  const parts: string[] = [
-    `You are a ${contract.role}.`,
-    `Objective: ${contract.objective}`,
-  ];
+  const parts: string[] = [`You are a ${contract.role}.`, `Objective: ${contract.objective}`];
 
   if (contract.checkpoints.length > 0) {
     const lines = contract.checkpoints.map(
-      cp => `- ${cp.name}: call \`emit_checkpoint__${sanitizeName(cp.name)}\` when ${cp.description}`,
+      (cp) =>
+        `- ${cp.name}: call \`emit_checkpoint__${sanitizeName(cp.name)}\` when ${cp.description}`,
     );
     parts.push(`Checkpoints — call each tool when you reach the milestone:\n${lines.join('\n')}`);
   }
 
   parts.push(
     'You also have filesystem and shell tools sandboxed to your working directory. ' +
-    'Checkpoint tools are how you declare structured results back to the orchestrator.',
+      'Checkpoint tools are how you declare structured results back to the orchestrator.',
   );
 
   if (sharedArtifacts !== undefined && Object.keys(sharedArtifacts).length > 0) {
@@ -59,10 +57,10 @@ function buildSystemPrompt(
 
 function filterTools(userTools: Tool[], contract: Contract): Tool[] {
   if (contract.toolsAllowed !== undefined) {
-    return userTools.filter(t => contract.toolsAllowed!.includes(t.name));
+    return userTools.filter((t) => contract.toolsAllowed?.includes(t.name));
   }
   if (contract.toolsDenied !== undefined) {
-    return userTools.filter(t => !contract.toolsDenied!.includes(t.name));
+    return userTools.filter((t) => !contract.toolsDenied?.includes(t.name));
   }
   return userTools;
 }
@@ -77,9 +75,10 @@ export async function runTenant(
   const artifacts: Record<string, unknown> = {};
 
   const checkpointTools: Tool[] = contract.checkpoints.map((cp: Checkpoint) => {
-    const schema = (cp.schema['type'] === 'object')
-      ? cp.schema
-      : { type: 'object', properties: { result: cp.schema }, required: ['result'] };
+    const schema =
+      cp.schema.type === 'object'
+        ? cp.schema
+        : { type: 'object', properties: { result: cp.schema }, required: ['result'] };
 
     return tool({
       name: `emit_checkpoint__${sanitizeName(cp.name)}`,
@@ -93,7 +92,10 @@ export async function runTenant(
           return { ok: true, message: `Checkpoint '${cp.name}' passed.` };
         }
         const explanation = verdict.ok ? verdict.value.explanation : verdict.error.message;
-        return { ok: false, message: `Checkpoint '${cp.name}' failed: ${explanation}. Revise and retry.` };
+        return {
+          ok: false,
+          message: `Checkpoint '${cp.name}' failed: ${explanation}. Revise and retry.`,
+        };
       },
     }) as unknown as Tool;
   });
@@ -117,7 +119,7 @@ export async function runTenant(
 
   const requiredNames = new Set(contract.checkpoints.map((cp: Checkpoint) => cp.name));
   const passedNames = new Set(Object.keys(artifacts));
-  const missing = [...requiredNames].filter(n => !passedNames.has(n));
+  const missing = [...requiredNames].filter((n) => !passedNames.has(n));
 
   if (missing.length > 0) {
     return {

@@ -1,9 +1,9 @@
-import { describe, expect, it, beforeEach, afterEach } from 'vitest';
-import { bashTool } from '../../src/tools/bash.ts';
-import { execute } from 'flint';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { execute } from 'flint';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { bashTool } from '../../src/tools/bash.ts';
 
 describe('bashTool', () => {
   let workDir: string;
@@ -48,7 +48,9 @@ describe('bashTool', () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       // Normalize for Windows temp path casing differences
-      expect(String(result.value).trim().toLowerCase()).toContain(workDir.toLowerCase().replace(/\\/g, '/').split('/').pop()!);
+      expect(String(result.value).trim().toLowerCase()).toContain(
+        workDir.toLowerCase().replace(/\\/g, '/').split('/').pop() ?? '',
+      );
     }
   });
 });

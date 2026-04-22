@@ -1,10 +1,14 @@
-import {
-  agent, call, count, execute, stream, tool, validate,
-} from 'flint';
+import { stream, agent, call, count, execute, tool, validate } from 'flint';
 import { budget } from 'flint/budget';
 import {
-  AdapterError, BudgetExhausted, FlintError, NotImplementedError,
-  ParseError, TimeoutError, ToolError, ValidationError,
+  AdapterError,
+  BudgetExhausted,
+  FlintError,
+  NotImplementedError,
+  ParseError,
+  TimeoutError,
+  ToolError,
+  ValidationError,
 } from 'flint/errors';
 import { mockAdapter, scriptedAdapter } from 'flint/testing';
 import { describe, expect, it } from 'vitest';
@@ -15,9 +19,20 @@ describe('flint exports integrity', () => {
       expect(typeof fn).toBe('function');
     }
   });
-  it('budget subpath', () => { expect(typeof budget).toBe('function'); });
+  it('budget subpath', () => {
+    expect(typeof budget).toBe('function');
+  });
   it('errors subpath — 8 classes', () => {
-    for (const cls of [FlintError, AdapterError, ValidationError, ToolError, BudgetExhausted, ParseError, TimeoutError, NotImplementedError]) {
+    for (const cls of [
+      FlintError,
+      AdapterError,
+      ValidationError,
+      ToolError,
+      BudgetExhausted,
+      ParseError,
+      TimeoutError,
+      NotImplementedError,
+    ]) {
       expect(typeof cls).toBe('function');
     }
   });

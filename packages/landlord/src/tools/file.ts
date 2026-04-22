@@ -1,7 +1,7 @@
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname, relative, resolve } from 'node:path';
 import { tool } from 'flint';
 import type { Tool } from 'flint';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { resolve, relative, dirname } from 'node:path';
 import { z } from 'zod';
 
 function guardPath(workDir: string, userPath: string): string {
@@ -32,7 +32,8 @@ export function fileReadTool(workDir: string): Tool {
 export function fileWriteTool(workDir: string): Tool {
   return tool({
     name: 'file_write',
-    description: 'Write content to a file relative to the working directory. Creates parent directories.',
+    description:
+      'Write content to a file relative to the working directory. Creates parent directories.',
     input: writeSchema,
     jsonSchema: {
       type: 'object',
