@@ -95,7 +95,7 @@ export async function runTenant(
         const explanation = verdict.ok ? verdict.value.explanation : verdict.error.message;
         return { ok: false, message: `Checkpoint '${cp.name}' failed: ${explanation}. Revise and retry.` };
       },
-    });
+    }) as unknown as Tool;
   });
 
   const allTools = [...checkpointTools, ...filterTools(userTools, contract)];
