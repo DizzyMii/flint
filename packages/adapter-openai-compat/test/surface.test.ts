@@ -376,4 +376,13 @@ describe('openaiCompatAdapter -- stream()', () => {
       }
     }).rejects.toMatchObject({ name: 'AdapterError', code: 'adapter.http.401' });
   });
+
+  it('throws AdapterError adapter.stream on mid-stream error event', async () => {
+    const errorSse = 'event: error\ndata: {"error":{"message":"stream interrupted"}}\n\n';
+    await expect(async () => {
+      for await (const _ of openaiCompatAdapter({ baseUrl: 'https://api.openai.com/v1', fetch: mockFetch(errorSse) }).stream({ model: 'gpt-4o', messages: [{ role: 'user', content: 'Hi' }] })) {
+        // unreachable
+      }
+    }).rejects.toMatchObject({ name: 'AdapterError', code: 'adapter.stream', message: 'stream interrupted' });
+  });
 });
