@@ -85,9 +85,27 @@ export async function decompose(
   const rawContracts = raw.contracts ?? [];
 
   const contracts: Contract[] = [];
+  const parseErrors: string[] = [];
   for (const item of rawContracts) {
     const parsed = ContractSchema.safeParse(item);
-    if (parsed.success) contracts.push(parsed.data);
+    if (parsed.success) {
+      contracts.push(parsed.data);
+    } else {
+      const role =
+        typeof item === 'object' && item !== null && 'role' in item
+          ? String((item as Record<string, unknown>).role)
+          : '(unknown)';
+      parseErrors.push(`role '${role}': ${parsed.error.issues.map((i) => i.message).join(', ')}`);
+    }
+  }
+
+  if (parseErrors.length > 0) {
+    return {
+      ok: false,
+      error: new Error(
+        `decompose: ${parseErrors.length} contract(s) failed validation:\n${parseErrors.join('\n')}`,
+      ),
+    };
   }
 
   return { ok: true, value: contracts };

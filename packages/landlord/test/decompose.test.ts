@@ -75,7 +75,7 @@ describe('decompose', () => {
     expect(result.ok).toBe(false);
   });
 
-  it('skips malformed contracts in array', async () => {
+  it('returns error when any contract fails validation', async () => {
     const adapter = mockAdapter({
       onCall: () =>
         toolCallResponse('emit_plan', {
@@ -87,10 +87,9 @@ describe('decompose', () => {
     });
 
     const result = await decompose('test', { adapter, model: 'test-model' });
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.value).toHaveLength(1);
-      expect(result.value[0]?.role).toBe('good');
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.message).toMatch(/failed validation/);
     }
   });
 });
