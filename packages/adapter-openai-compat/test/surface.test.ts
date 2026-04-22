@@ -89,7 +89,8 @@ describe('openaiCompatAdapter -- call() HTTP', () => {
   it('sends Authorization: Bearer when apiKey provided', async () => {
     let capturedHeaders: Record<string, string> = {};
     const fetch = async (_: URL | RequestInfo, init: RequestInit | undefined): Promise<Response> => {
-      capturedHeaders = Object.fromEntries(Object.entries((init?.headers as Record<string, string>) ?? {}));
+      const h = new Headers(init?.headers);
+      capturedHeaders = Object.fromEntries(h.entries());
       return new Response(JSON.stringify(mockResponse()), { status: 200, headers: { 'content-type': 'application/json' } });
     };
     await openaiCompatAdapter({ baseUrl: 'https://api.openai.com/v1', apiKey: 'sk-test', fetch })
@@ -100,7 +101,8 @@ describe('openaiCompatAdapter -- call() HTTP', () => {
   it('omits Authorization when no apiKey', async () => {
     let capturedHeaders: Record<string, string> = {};
     const fetch = async (_: URL | RequestInfo, init: RequestInit | undefined): Promise<Response> => {
-      capturedHeaders = Object.fromEntries(Object.entries((init?.headers as Record<string, string>) ?? {}));
+      const h = new Headers(init?.headers);
+      capturedHeaders = Object.fromEntries(h.entries());
       return new Response(JSON.stringify(mockResponse()), { status: 200, headers: { 'content-type': 'application/json' } });
     };
     await openaiCompatAdapter({ baseUrl: 'http://localhost:11434/v1', fetch })
@@ -111,7 +113,8 @@ describe('openaiCompatAdapter -- call() HTTP', () => {
   it('merges defaultHeaders into every request', async () => {
     let capturedHeaders: Record<string, string> = {};
     const fetch = async (_: URL | RequestInfo, init: RequestInit | undefined): Promise<Response> => {
-      capturedHeaders = Object.fromEntries(Object.entries((init?.headers as Record<string, string>) ?? {}));
+      const h = new Headers(init?.headers);
+      capturedHeaders = Object.fromEntries(h.entries());
       return new Response(JSON.stringify(mockResponse()), { status: 200, headers: { 'content-type': 'application/json' } });
     };
     await openaiCompatAdapter({ baseUrl: 'https://api.groq.com/openai/v1', apiKey: 'gsk_test', defaultHeaders: { 'x-custom': 'hello' }, fetch })
@@ -321,6 +324,20 @@ describe('openaiCompatAdapter -- stream()', () => {
     for await (const c of openaiCompatAdapter({ baseUrl: 'https://api.openai.com/v1', fetch: mockFetch(sse) }).stream({ model: 'gpt-4o', messages: [{ role: 'user', content: 'Hi' }] })) chunks.push(c);
     expect(chunks.some((c) => c.type === 'usage')).toBe(true);
     expect(chunks.some((c) => c.type === 'end')).toBe(true);
+  });
+
+  it('accumulates token usage from the usage chunk in the stream', async () => {
+    const usageChunk = {
+      id: 'chatcmpl-stream', object: 'chat.completion.chunk', created: 1700000000, model: 'gpt-4o',
+      choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 42, completion_tokens: 17, total_tokens: 59 },
+    };
+    const sse = sseLines(streamChunk({ content: 'Hi' }), usageChunk, '[DONE]');
+    const chunks: StreamChunk[] = [];
+    for await (const c of openaiCompatAdapter({ baseUrl: 'https://api.openai.com/v1', fetch: mockFetch(sse) }).stream({ model: 'gpt-4o', messages: [{ role: 'user', content: 'Hi' }] })) chunks.push(c);
+    const usageEvent = chunks.find((c) => c.type === 'usage') as { type: 'usage'; usage: { input: number; output: number } } | undefined;
+    expect(usageEvent?.usage.input).toBe(42);
+    expect(usageEvent?.usage.output).toBe(17);
   });
 
   it('maps "stop" in stream -> end reason "end"', async () => {
