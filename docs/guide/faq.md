@@ -1,0 +1,376 @@
+# FAQ
+
+Frequently asked questions about Flint's design, capabilities, and usage.
+
+## Architecture & design
+
+### Why plain functions instead of classes?
+
+Three reasons: testability, composability, and readability.
+
+**Testability:** Functions accept their dependencies as arguments. You swap out the `adapter` argument for a `mockAdapter()` in tests — no mocking frameworks, no class instantiation, no `new MyAgent(deps)` boilerplate.
+
+**Composability:** Functions compose naturally. `agent()` calls `call()`, `call()` calls the adapter. You can wrap any function in another function. With classes, composition requires inheritance or delegation patterns that add ceremony.
+
+**Readability:** When something goes wrong, the call stack is flat: your code → `agent()` → `call()` → adapter. There's no framework machinery in the way.
+
+### Why `Result<T>` instead of throwing?
+
+Thrown errors are invisible in type signatures. `async function foo(): Promise<string>` could throw anything — there's no way to know from the type alone.
+
+`Result<T>` makes failure a first-class part of the contract:
+
+```ts
+type Result<T> = { ok: true; value: T } | { ok: false; error: Error };
+```
+
+When `call()` returns `Result<CallOutput>`, the compiler forces you to check `res.ok` before accessing `res.value`. You cannot accidentally skip error handling. The error is typed (narrowable to `AdapterError`, `BudgetExhausted`, etc.) and carries a `.code` string for programmatic handling.
+
+### Why Standard Schema instead of Zod?
+
+[Standard Schema](https://standardschema.dev) is a spec, not a library. Any library that implements `StandardSchemaV1` is compatible with Flint: Zod, Valibot, ArkType, Effect Schema, and more.
+
+If Flint required Zod, every user's project would have a forced Zod dependency — a version conflict waiting to happen. With Standard Schema, you bring your preferred validator and Flint accepts it.
+
+### Why ESM only?
+
+- Tree-shaking: bundlers can eliminate unused exports
+- Top-level `await`: cleaner initialization code
+- Native `import.meta`: consistent module semantics
+- No dual-package hazard: one format, one set of types
+
+CJS consumers can use their bundler's ESM interop. Most modern toolchains (Vite, esbuild, tsup, Next.js, Bun) handle this transparently.
+
+### Why so few dependencies?
+
+Every dependency is a maintenance burden, a supply-chain risk, and a potential version conflict. `@standard-schema/spec` is a zero-KB spec package — it has no runtime code, only TypeScript types.
+
+`@flint/adapter-anthropic` uses `fetch` and `ReadableStream` — both available in Node 18+ and all modern browsers. No HTTP library needed.
+
+---
+
+## RAG & vector search
+
+### How does Flint handle RAG?
+
+Three functions in `flint/rag`:
+
+```ts
+import { chunk, memoryStore, retrieve } from 'flint/rag';
+
+// 1. Split documents into chunks
+const chunks = chunk(document, { size: 512, overlap: 64 });
+
+// 2. Embed and store (you provide the embedder function)
+const store = memoryStore();
+await store.add(chunks, async (text) => await embed(text)); // embed returns number[]
+
+// 3. Retrieve relevant chunks at query time
+const results = await retrieve(store, query, async (text) => await embed(text), { topK: 5 });
+
+// 4. Inject into the LLM call
+const context = results.map(r => r.text).join('\n\n');
+const res = await call({
+  adapter,
+  model: 'claude-opus-4-7',
+  messages: [
+    { role: 'system', content: `Context:\n${context}` },
+    { role: 'user', content: query },
+  ],
+});
+```
+
+See [RAG](/features/rag) for the full API.
+
+### Does Flint include a vector database?
+
+No. `memoryStore()` is an in-memory store for development and testing — it's not persistent and doesn't scale beyond a few thousand chunks.
+
+For production, implement the `EmbeddingStore` interface and wrap your preferred database:
+
+```ts
+import type { EmbeddingStore } from 'flint/rag';
+
+const pgvectorStore: EmbeddingStore = {
+  async add(chunks, embedder) {
+    for (const c of chunks) {
+      const embedding = await embedder(c.text);
+      await db.query('INSERT INTO embeddings (text, embedding) VALUES ($1, $2)', [c.text, embedding]);
+    }
+  },
+  async query(embedding, topK) {
+    const rows = await db.query(
+      'SELECT text, 1 - (embedding <=> $1) AS score FROM embeddings ORDER BY score DESC LIMIT $2',
+      [embedding, topK]
+    );
+    return rows.map(r => ({ text: r.text, score: r.score }));
+  },
+};
+```
+
+This pattern works with Pinecone, Weaviate, Qdrant, pgvector, Chroma, and any other store that supports nearest-neighbour search.
+
+### What embedding model should I use?
+
+Any model that returns `number[]` per text input. Common choices:
+
+```ts
+// OpenAI text-embedding-3-small (1536 dimensions, cheap)
+import OpenAI from 'openai';
+const openai = new OpenAI();
+const embed = async (text: string): Promise<number[]> => {
+  const res = await openai.embeddings.create({ model: 'text-embedding-3-small', input: text });
+  return res.data[0].embedding;
+};
+
+// Local model via Ollama
+const embed = async (text: string): Promise<number[]> => {
+  const res = await fetch('http://localhost:11434/api/embeddings', {
+    method: 'POST',
+    body: JSON.stringify({ model: 'nomic-embed-text', prompt: text }),
+  });
+  return (await res.json()).embedding;
+};
+```
+
+---
+
+## Agents & budget
+
+### How is budget enforced?
+
+Before each LLM call, `call()` calls `budget.assertNotExhausted()`. After each call, it calls `budget.consume({ input, output, cached, cost })`. If any limit is exceeded after consume, `BudgetExhausted` is thrown internally and returned as `{ ok: false, error: BudgetExhausted }`.
+
+The agent loop checks the result of every `call()` — if it's not ok, the loop exits immediately and returns the error.
+
+### What happens when budget is exhausted mid-agent?
+
+The agent loop returns `{ ok: false, error: BudgetExhausted }` at the step where the limit was hit. No exception propagates to your code — it's just a `Result`. Partial steps completed before the exhaustion are accessible on the error via `error.cause`:
+
+```ts
+const res = await agent({ ..., budget });
+if (!res.ok) {
+  if (res.error instanceof BudgetExhausted) {
+    console.log('Budget hit:', res.error.code); // 'budget.steps' | 'budget.tokens' | 'budget.dollars'
+  }
+}
+```
+
+### Can I reuse a budget across multiple agent calls?
+
+Yes. The `budget` object is stateful — it accumulates usage across all calls that receive it. This is useful for enforcing a per-session dollar cap:
+
+```ts
+const sessionBudget = budget({ maxDollars: 1.00 });
+
+// Each of these consumes from the same budget pool
+const res1 = await agent({ ..., budget: sessionBudget });
+const res2 = await agent({ ..., budget: sessionBudget });
+
+console.log(`Session remaining: $${sessionBudget.remaining().dollars?.toFixed(4)}`);
+```
+
+### What happens when a tool handler throws?
+
+`execute()` wraps the tool handler in a try/catch. If the handler throws, it returns `{ ok: false, error: ToolError }`. The agent loop receives a tool result message with the error text (e.g. `"Error: file not found"`) and can decide to retry or stop based on the error content.
+
+Your agent code never sees the exception — it's converted to a tool result that the LLM reads.
+
+---
+
+## Providers & adapters
+
+### Can I use multiple providers in the same app?
+
+Yes. Each adapter is an independent object. Pass whichever adapter you want per call:
+
+```ts
+const anthropic = anthropicAdapter({ apiKey: process.env.ANTHROPIC_API_KEY! });
+const groq = openAICompatAdapter({ apiKey: process.env.GROQ_API_KEY!, baseURL: 'https://api.groq.com/openai/v1' });
+
+// Use different adapters for different tasks
+const fast = await call({ adapter: groq, model: 'llama-3.1-8b-instant', messages });
+const smart = await call({ adapter: anthropic, model: 'claude-opus-4-7', messages });
+```
+
+### Does Flint support local models?
+
+Yes, via `@flint/adapter-openai-compat` pointed at a local Ollama instance:
+
+```ts
+import { openAICompatAdapter } from '@flint/adapter-openai-compat';
+
+const adapter = openAICompatAdapter({
+  apiKey: 'ollama', // Ollama doesn't validate the key
+  baseURL: 'http://localhost:11434/v1',
+});
+
+const res = await call({
+  adapter,
+  model: 'llama3.2', // any model you've pulled with `ollama pull`
+  messages: [{ role: 'user', content: 'Hello' }],
+});
+```
+
+### How does prompt caching work with Anthropic?
+
+The Anthropic adapter automatically adds `cache_control: { type: 'ephemeral' }` breakpoints at system prompt and tool definition boundaries when the model supports it (claude-3-5-sonnet, claude-3-opus, claude-opus-4-7, etc.).
+
+On cache hits, `usage.cached` is populated in the response. Cache TTL is 5 minutes. You don't configure anything — it just works.
+
+To verify caching is active, inspect the usage:
+
+```ts
+const res = await call({ adapter, model: 'claude-opus-4-7', messages });
+if (res.ok) console.log('Cached tokens:', res.value.usage.cached ?? 0);
+```
+
+### Can I write my own adapter?
+
+Yes. Implement `ProviderAdapter`:
+
+```ts
+import type { ProviderAdapter, NormalizedRequest, NormalizedResponse } from 'flint';
+
+const myAdapter: ProviderAdapter = {
+  name: 'my-provider',
+  capabilities: { streaming: true },
+  async call(req: NormalizedRequest): Promise<NormalizedResponse> {
+    // Call your provider's API, return normalized response
+    return { message: { role: 'assistant', content: '...' }, usage: { input: 10, output: 5 }, stopReason: 'end' };
+  },
+  async *stream(req: NormalizedRequest): AsyncIterable<StreamChunk> {
+    yield { type: 'text', delta: 'Hello' };
+    yield { type: 'usage', usage: { input: 10, output: 1 } };
+    yield { type: 'end', reason: 'end' };
+  },
+};
+```
+
+See [Writing an Adapter](/adapters/custom) for the full guide.
+
+---
+
+## Safety
+
+### What is prompt injection detection?
+
+`detectInjection()` scans text for patterns that attempt to override system instructions — phrases like "ignore previous instructions", "disregard your system prompt", "you are now DAN", etc.
+
+```ts
+import { detectInjection } from 'flint/safety';
+
+const result = detectInjection(userInput);
+// result: { score: number (0-1), matches: string[] }
+
+if (result.score > 0.5) {
+  throw new Error('Possible injection attempt detected');
+}
+```
+
+Use it to validate tool results and user messages before injecting them into agent context.
+
+### What is a trust boundary?
+
+`trustBoundary()` wraps an adapter and automatically runs injection detection on every LLM response. If a response exceeds the threshold, it's blocked:
+
+```ts
+import { trustBoundary } from 'flint/safety';
+
+const safeAdapter = trustBoundary(adapter, { threshold: 0.7 });
+// Use safeAdapter exactly like adapter — injection detection is transparent
+```
+
+### How does redaction work?
+
+`redact()` strips common secret patterns from a string before it reaches the LLM:
+
+```ts
+import { redact } from 'flint/safety';
+
+const safe = redact('My key is sk-ant-abc123 and email is user@example.com');
+// → 'My key is [REDACTED] and email is [REDACTED]'
+```
+
+Built-in patterns: API keys (various formats), email addresses, credit card numbers, SSNs, private keys, JWT tokens. You can add custom patterns.
+
+---
+
+## Streaming
+
+### Why AsyncIterable instead of callbacks or EventEmitter?
+
+`for await` composes naturally with standard async patterns:
+- Works with `AbortController` for cancellation
+- Works with `try/finally` for cleanup
+- Works with `break` to stop early
+- No listener lifecycle to manage
+- Typed chunks — the compiler knows what each `chunk.type` means
+
+### How do I cancel a stream?
+
+Pass an `AbortSignal` and abort when needed:
+
+```ts
+const controller = new AbortController();
+
+setTimeout(() => controller.abort(), 5000); // cancel after 5s
+
+const chunks = stream({
+  adapter,
+  model: 'claude-opus-4-7',
+  messages,
+  signal: controller.signal,
+});
+
+try {
+  for await (const chunk of chunks) {
+    if (chunk.type === 'text') process.stdout.write(chunk.delta);
+  }
+} catch (err) {
+  if (err instanceof DOMException && err.name === 'AbortError') {
+    console.log('Stream cancelled');
+  }
+}
+```
+
+---
+
+## Graph
+
+### When should I use `@flint/graph` vs `agent()`?
+
+Use `agent()` for **open-ended tasks** where the number of steps isn't known in advance and the model decides what to do next. The model drives the loop.
+
+Use `@flint/graph` for **structured workflows** where the steps are known, there are conditional branches, fan-out parallelism, or you need checkpointing to resume from a specific node after failure.
+
+Rule of thumb: if you can draw the flowchart before running the agent, use `@flint/graph`. If the model needs to figure out the steps itself, use `agent()`.
+
+### Does graph support parallel branches?
+
+Yes. Fan-out sends state to multiple nodes simultaneously; fan-in waits for all branches to complete before proceeding:
+
+```ts
+import { graph } from '@flint/graph';
+
+const g = graph()
+  .node('start', startFn)
+  .fanOut('start', ['branch-a', 'branch-b'])
+  .node('branch-a', branchAFn)
+  .node('branch-b', branchBFn)
+  .fanIn(['branch-a', 'branch-b'], 'merge')
+  .node('merge', mergeFn);
+```
+
+See [Graph](/features/graph) for the full API including checkpointing and conditional edges.
+
+---
+
+## See also
+
+- [Quick Start](/guide/quick-start) — get running in 5 minutes
+- [Error Types](/reference/errors) — full error catalog
+- [Safety](/features/safety) — injection, redaction, approval gates
+- [RAG](/features/rag) — chunking, embedding, retrieval
+- [Budget](/features/budget) — step, token, dollar enforcement
+- [Graph](/features/graph) — structured workflows
