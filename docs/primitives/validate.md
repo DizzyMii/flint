@@ -53,7 +53,61 @@ Works with any library that implements the Standard Schema spec:
 - [ArkType](https://arktype.io)
 - [TypeBox](https://github.com/sinclairzx81/typebox)
 
+## validate() signature
+
+```ts
+function validate<T>(
+  value: unknown,
+  schema: StandardSchemaV1<unknown, T>
+): Promise<Result<T>>
+```
+
+## Supported schema libraries
+
+Any library implementing [Standard Schema v1](https://standardschema.dev):
+
+```ts
+// Zod
+import { z } from 'zod';
+const schema = z.object({ name: z.string() });
+
+// Valibot
+import * as v from 'valibot';
+const schema = v.object({ name: v.string() });
+
+// ArkType
+import { type } from 'arktype';
+const schema = type({ name: 'string' });
+
+// All work identically with validate()
+const result = await validate({ name: 'Alice' }, schema);
+```
+
+## Error on failure
+
+Returns `{ ok: false, error: ValidationError }`. The `ValidationError.cause` contains the raw schema issues:
+
+```ts
+const result = await validate(42, stringSchema);
+if (!result.ok) {
+  console.log(result.error.code); // 'validation.failed'
+  console.log(result.error.cause); // schema-specific issues array
+}
+```
+
+## Using validate() standalone
+
+`call()` uses `validate()` internally when a `schema` option is provided. You can also use it directly for any data validation that doesn't involve the LLM:
+
+```ts
+// Validate webhook payload
+const body = await request.json();
+const payload = await validate(body, WebhookSchema);
+if (!payload.ok) return Response.json({ error: 'Invalid payload' }, { status: 400 });
+```
+
 ## See also
 
-- [call()](/primitives/call) — `call()` uses `validate()` internally when `schema` is provided
-- [Tool input validation](/primitives/tool) — tools use Standard Schema for input types
+- [call()](/primitives/call) — schema option uses validate() internally
+- [tool()](/primitives/tool) — tool input is validated with validate()
+- [Error Types](/reference/errors) — ValidationError
