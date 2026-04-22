@@ -1,8 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { decompose } from '../src/decompose.ts';
+import type { NormalizedResponse } from 'flint';
 import { budget } from 'flint/budget';
 import { mockAdapter } from 'flint/testing';
-import type { NormalizedResponse } from 'flint';
+import { describe, expect, it } from 'vitest';
+import { decompose } from '../src/decompose.ts';
 
 function toolCallResponse(name: string, args: unknown): NormalizedResponse {
   return {
@@ -19,17 +19,28 @@ function toolCallResponse(name: string, args: unknown): NormalizedResponse {
 describe('decompose', () => {
   it('returns contracts from emit_plan tool call', async () => {
     const adapter = mockAdapter({
-      onCall: () => toolCallResponse('emit_plan', {
-        contracts: [
-          {
-            role: 'backend_engineer',
-            objective: 'Build API',
-            subPrompt: 'Create a REST API',
-            checkpoints: [{ name: 'api_ready', description: 'API is ready', schema: { type: 'object', properties: { endpoints: { type: 'array' } }, required: ['endpoints'] } }],
-            outputSchema: { type: 'object' },
-          },
-        ],
-      }),
+      onCall: () =>
+        toolCallResponse('emit_plan', {
+          contracts: [
+            {
+              role: 'backend_engineer',
+              objective: 'Build API',
+              subPrompt: 'Create a REST API',
+              checkpoints: [
+                {
+                  name: 'api_ready',
+                  description: 'API is ready',
+                  schema: {
+                    type: 'object',
+                    properties: { endpoints: { type: 'array' } },
+                    required: ['endpoints'],
+                  },
+                },
+              ],
+              outputSchema: { type: 'object' },
+            },
+          ],
+        }),
     });
 
     const result = await decompose('Build a REST API', {
@@ -41,9 +52,9 @@ describe('decompose', () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.value).toHaveLength(1);
-      expect(result.value[0]!.role).toBe('backend_engineer');
-      expect(result.value[0]!.dependsOn).toEqual([]);
-      expect(result.value[0]!.maxRetries).toBe(3);
+      expect(result.value[0]?.role).toBe('backend_engineer');
+      expect(result.value[0]?.dependsOn).toEqual([]);
+      expect(result.value[0]?.maxRetries).toBe(3);
     }
   });
 
@@ -66,19 +77,20 @@ describe('decompose', () => {
 
   it('skips malformed contracts in array', async () => {
     const adapter = mockAdapter({
-      onCall: () => toolCallResponse('emit_plan', {
-        contracts: [
-          { role: 'good', objective: 'x', subPrompt: 'x', checkpoints: [], outputSchema: {} },
-          { objective: 'missing role' },
-        ],
-      }),
+      onCall: () =>
+        toolCallResponse('emit_plan', {
+          contracts: [
+            { role: 'good', objective: 'x', subPrompt: 'x', checkpoints: [], outputSchema: {} },
+            { objective: 'missing role' },
+          ],
+        }),
     });
 
     const result = await decompose('test', { adapter, model: 'test-model' });
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.value).toHaveLength(1);
-      expect(result.value[0]!.role).toBe('good');
+      expect(result.value[0]?.role).toBe('good');
     }
   });
 });

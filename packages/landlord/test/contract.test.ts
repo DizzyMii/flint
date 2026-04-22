@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ContractSchema, CheckpointSchema } from '../src/contract.ts';
+import { CheckpointSchema, ContractSchema } from '../src/contract.ts';
 
 describe('CheckpointSchema', () => {
   it('parses valid checkpoint', () => {

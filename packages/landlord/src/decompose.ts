@@ -76,7 +76,7 @@ export async function decompose(
 
   if (!result.ok) return result;
 
-  const planCall = result.value.message.toolCalls?.find(tc => tc.name === 'emit_plan');
+  const planCall = result.value.message.toolCalls?.find((tc) => tc.name === 'emit_plan');
   if (planCall === undefined) {
     return { ok: false, error: new Error('LLM did not call emit_plan — no plan produced') };
   }

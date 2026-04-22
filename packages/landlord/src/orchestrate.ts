@@ -1,11 +1,11 @@
-import type { Budget } from 'flint/budget';
+import { mkdir } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type { ProviderAdapter, Result, Tool } from 'flint';
+import type { Budget } from 'flint/budget';
 import type { Contract } from './contract.ts';
 import { decompose } from './decompose.ts';
 import { runTenant } from './tenant.ts';
-import { mkdir } from 'node:fs/promises';
-import { join } from 'node:path';
-import { tmpdir } from 'node:os';
 
 export class DependencyCycleError extends Error {
   constructor(message: string) {
@@ -15,9 +15,11 @@ export class DependencyCycleError extends Error {
 }
 
 export function resolveOrder(contracts: Contract[]): Contract[] {
-  const byRole = new Map(contracts.map(c => [c.role, c]));
-  const WHITE = 0, GRAY = 1, BLACK = 2;
-  const color = new Map(contracts.map(c => [c.role, WHITE]));
+  const byRole = new Map(contracts.map((c) => [c.role, c]));
+  const WHITE = 0;
+  const GRAY = 1;
+  const BLACK = 2;
+  const color = new Map(contracts.map((c) => [c.role, WHITE]));
   const order: Contract[] = [];
 
   function visit(role: string, stack: string[]): void {
@@ -25,13 +27,14 @@ export function resolveOrder(contracts: Contract[]): Contract[] {
       throw new DependencyCycleError(`Dependency cycle: ${[...stack, role].join(' -> ')}`);
     }
     if (color.get(role) === BLACK) return;
-    if (!byRole.has(role)) return;
+    const entry = byRole.get(role);
+    if (!entry) return;
     color.set(role, GRAY);
-    for (const dep of byRole.get(role)!.dependsOn) {
+    for (const dep of entry.dependsOn) {
       visit(dep, [...stack, role]);
     }
     color.set(role, BLACK);
-    order.push(byRole.get(role)!);
+    order.push(entry);
   }
 
   for (const c of contracts) visit(c.role, []);
@@ -91,10 +94,15 @@ export async function orchestrate(
   await mkdir(join(baseOutputDir, 'shared'), { recursive: true });
 
   // Per-role gate: resolves with artifacts when the tenant completes
-  const gates = new Map<string, { promise: Promise<Record<string, unknown>>; resolve: (v: Record<string, unknown>) => void }>();
+  const gates = new Map<
+    string,
+    { promise: Promise<Record<string, unknown>>; resolve: (v: Record<string, unknown>) => void }
+  >();
   for (const c of plan) {
     let resolve!: (v: Record<string, unknown>) => void;
-    const promise = new Promise<Record<string, unknown>>(r => { resolve = r; });
+    const promise = new Promise<Record<string, unknown>>((r) => {
+      resolve = r;
+    });
     gates.set(c.role, { promise, resolve });
   }
 
@@ -105,12 +113,12 @@ export async function orchestrate(
   async function runWithRetry(contract: Contract): Promise<void> {
     // Wait for dependencies
     for (const dep of contract.dependsOn) {
-      await gates.get(dep)!.promise;
+      await gates.get(dep)?.promise;
       if (escalatedRoles.has(dep)) {
         const lastError = `Dependency '${dep}' escalated before this tenant could start`;
         escalatedRoles.add(contract.role);
         tenantOutcomes[contract.role] = { status: 'escalated', lastError, retriesExhausted: 0 };
-        gates.get(contract.role)!.resolve({});
+        gates.get(contract.role)?.resolve({});
         config.onEvent?.({ type: 'tenant_escalated', role: contract.role });
         return;
       }
@@ -149,13 +157,18 @@ export async function orchestrate(
       if (result.ok) {
         jobArtifacts[contract.role] = result.value;
         tenantOutcomes[contract.role] = { status: 'complete', artifacts: result.value };
-        gates.get(contract.role)!.resolve(result.value);
+        gates.get(contract.role)?.resolve(result.value);
         config.onEvent?.({ type: 'tenant_complete', role: contract.role });
         return;
       }
 
       lastError = result.error.message;
-      config.onEvent?.({ type: 'tenant_evicted', role: contract.role, reason: lastError, retry: attempt + 1 });
+      config.onEvent?.({
+        type: 'tenant_evicted',
+        role: contract.role,
+        reason: lastError,
+        retry: attempt + 1,
+      });
     }
 
     // All retries exhausted
@@ -165,13 +178,13 @@ export async function orchestrate(
       lastError: lastError ?? 'unknown',
       retriesExhausted: contract.maxRetries,
     };
-    gates.get(contract.role)!.resolve({});
+    gates.get(contract.role)?.resolve({});
     config.onEvent?.({ type: 'tenant_escalated', role: contract.role });
   }
 
-  await Promise.all(plan.map(c => runWithRetry(c)));
+  await Promise.all(plan.map((c) => runWithRetry(c)));
 
-  const allComplete = Object.values(tenantOutcomes).every(o => o.status === 'complete');
+  const allComplete = Object.values(tenantOutcomes).every((o) => o.status === 'complete');
   const status = allComplete ? 'complete' : 'partial';
   config.onEvent?.({ type: 'job_complete', artifacts: jobArtifacts });
 

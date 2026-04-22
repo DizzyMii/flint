@@ -1,14 +1,13 @@
-import { defineConfig } from 'vitepress'
+import { defineConfig } from 'vitepress';
 
+// biome-ignore lint/style/noDefaultExport: VitePress requires default export
 export default defineConfig({
   title: 'Flint',
   description: 'Token-efficient agentic TypeScript runtime',
   base: '/flint/',
   srcExclude: ['superpowers/**'],
 
-  head: [
-    ['link', { rel: 'icon', type: 'image/png', href: '/flint/logo.png' }],
-  ],
+  head: [['link', { rel: 'icon', type: 'image/png', href: '/flint/logo.png' }]],
 
   themeConfig: {
     logo: '/logo.png',
@@ -24,7 +23,10 @@ export default defineConfig({
         text: 'v0',
         items: [
           { text: 'v0 Status & Stability', link: '/guide/v0-status' },
-          { text: 'Changelog', link: 'https://github.com/DizzyMii/flint/blob/main/.changeset/README.md' },
+          {
+            text: 'Changelog',
+            link: 'https://github.com/DizzyMii/flint/blob/main/.changeset/README.md',
+          },
         ],
       },
     ],
@@ -93,9 +95,7 @@ export default defineConfig({
       ],
     },
 
-    socialLinks: [
-      { icon: 'github', link: 'https://github.com/DizzyMii/flint' },
-    ],
+    socialLinks: [{ icon: 'github', link: 'https://github.com/DizzyMii/flint' }],
 
     footer: {
       message: 'Released under the MIT License.',
@@ -111,4 +111,4 @@ export default defineConfig({
       text: 'Edit this page on GitHub',
     },
   },
-})
+});

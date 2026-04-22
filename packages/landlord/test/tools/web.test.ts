@@ -1,9 +1,11 @@
-import { describe, expect, it, vi, afterEach } from 'vitest';
-import { webFetchTool } from '../../src/tools/web.ts';
 import { execute } from 'flint';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { webFetchTool } from '../../src/tools/web.ts';
 
 describe('webFetchTool', () => {
-  afterEach(() => { vi.restoreAllMocks() });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
   it('returns response body as string', async () => {
     vi.stubGlobal('fetch', async (_url: string) => ({
@@ -37,7 +39,9 @@ describe('webFetchTool', () => {
   });
 
   it('returns error on network failure', async () => {
-    vi.stubGlobal('fetch', async (_url: string) => { throw new Error('ECONNREFUSED') });
+    vi.stubGlobal('fetch', async (_url: string) => {
+      throw new Error('ECONNREFUSED');
+    });
 
     const web = webFetchTool('/tmp/workdir');
     const result = await execute(web, { url: 'https://unreachable.example' });

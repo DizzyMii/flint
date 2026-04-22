@@ -1,12 +1,18 @@
-import { describe, expect, it } from 'vitest';
-import { validateCheckpoint } from '../src/validate.ts';
-import { mockAdapter } from 'flint/testing';
-import type { Checkpoint } from '../src/contract.ts';
 import type { NormalizedResponse } from 'flint';
+import { mockAdapter } from 'flint/testing';
+import { describe, expect, it } from 'vitest';
+import type { Checkpoint } from '../src/contract.ts';
+import { validateCheckpoint } from '../src/validate.ts';
 
 function judgeResponse(passed: boolean): NormalizedResponse {
   return {
-    message: { role: 'assistant', content: JSON.stringify({ passed, explanation: passed ? 'Looks good' : 'Missing required field' }) },
+    message: {
+      role: 'assistant',
+      content: JSON.stringify({
+        passed,
+        explanation: passed ? 'Looks good' : 'Missing required field',
+      }),
+    },
     usage: { input: 15, output: 8 },
     stopReason: 'end',
   };
@@ -24,13 +30,16 @@ const checkpoint: Checkpoint = {
 
 describe('validateCheckpoint', () => {
   it('tier 1 fails immediately when JSON Schema is violated — no LLM call made', async () => {
-    const adapter = mockAdapter({ onCall: () => { throw new Error('should not be called') } });
+    const adapter = mockAdapter({
+      onCall: () => {
+        throw new Error('should not be called');
+      },
+    });
 
-    const result = await validateCheckpoint(
-      { wrongField: 'value' },
-      checkpoint,
-      { adapter, model: 'test-model' },
-    );
+    const result = await validateCheckpoint({ wrongField: 'value' }, checkpoint, {
+      adapter,
+      model: 'test-model',
+    });
 
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -42,7 +51,10 @@ describe('validateCheckpoint', () => {
   it('tier 2 LLM judge is called when JSON Schema passes', async () => {
     let judgeCallCount = 0;
     const adapter = mockAdapter({
-      onCall: () => { judgeCallCount++; return judgeResponse(true); },
+      onCall: () => {
+        judgeCallCount++;
+        return judgeResponse(true);
+      },
     });
 
     const result = await validateCheckpoint(
@@ -61,11 +73,10 @@ describe('validateCheckpoint', () => {
   it('tier 2 can return failed verdict', async () => {
     const adapter = mockAdapter({ onCall: () => judgeResponse(false) });
 
-    const result = await validateCheckpoint(
-      { endpoints: [] },
-      checkpoint,
-      { adapter, model: 'test-model' },
-    );
+    const result = await validateCheckpoint({ endpoints: [] }, checkpoint, {
+      adapter,
+      model: 'test-model',
+    });
 
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -83,11 +94,10 @@ describe('validateCheckpoint', () => {
       }),
     });
 
-    const result = await validateCheckpoint(
-      { endpoints: ['/foo'] },
-      checkpoint,
-      { adapter, model: 'test-model' },
-    );
+    const result = await validateCheckpoint({ endpoints: ['/foo'] }, checkpoint, {
+      adapter,
+      model: 'test-model',
+    });
 
     expect(result.ok).toBe(false);
   });
