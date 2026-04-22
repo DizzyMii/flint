@@ -177,4 +177,37 @@ describe('runTenant', () => {
     expect(receivedToolNames).toContain('allowed_tool');
     expect(receivedToolNames).not.toContain('denied_tool');
   });
+
+  it('returns error when artifacts do not satisfy outputSchema', async () => {
+    const adapter = mockAdapter({
+      onCall: (_req, i) => {
+        if (i === 0)
+          return toolCallResponse('emit_checkpoint__code_written', {
+            code: 'const add = (a, b) => a + b;',
+          });
+        if (i === 1) return judgePassResponse();
+        return textResponse('Done');
+      },
+    });
+
+    const contractWithSchema: Contract = {
+      ...simpleContract,
+      outputSchema: {
+        properties: { code_written: { type: 'object', required: ['test_count'] } },
+        required: ['code_written'],
+      },
+    };
+
+    const result = await runTenant(contractWithSchema, [], {
+      adapter,
+      model: 'test',
+      budget: budget({ maxSteps: 20 }),
+      workDir: '/tmp/test',
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.message).toMatch(/outputSchema/);
+    }
+  });
 });

@@ -1,9 +1,12 @@
+import Ajv from 'ajv';
 import { agent, tool } from 'flint';
 import type { ProviderAdapter, Result, StandardSchemaV1, Tool } from 'flint';
 import { budget as makeBudget } from 'flint/budget';
 import type { Budget } from 'flint/budget';
 import type { Checkpoint, Contract } from './contract.ts';
 import { validateCheckpoint } from './validate.ts';
+
+const ajv = new Ajv({ allErrors: true });
 
 function anyObjectSchema(): StandardSchemaV1<unknown, Record<string, unknown>> {
   return {
@@ -126,6 +129,22 @@ export async function runTenant(
       ok: false,
       error: new Error(`Tenant finished without passing checkpoints: ${missing.join(', ')}`),
     };
+  }
+
+  if (contract.outputSchema !== undefined && Object.keys(contract.outputSchema).length > 0) {
+    let validate: ReturnType<typeof ajv.compile>;
+    try {
+      validate = ajv.compile({ type: 'object', ...contract.outputSchema });
+    } catch {
+      validate = ajv.compile({ type: 'object' });
+    }
+    if (!validate(artifacts)) {
+      const explanation = ajv.errorsText(validate.errors) ?? 'Output schema validation failed';
+      return {
+        ok: false,
+        error: new Error(`Tenant output did not satisfy outputSchema: ${explanation}`),
+      };
+    }
   }
 
   return { ok: true, value: artifacts };

@@ -12,7 +12,7 @@ export const ContractSchema = z.object({
   objective: z.string(),
   subPrompt: z.string(),
   checkpoints: z.array(CheckpointSchema),
-  outputSchema: z.record(z.unknown()),
+  outputSchema: z.record(z.unknown()).optional(),
   toolsAllowed: z.array(z.string()).optional(),
   toolsDenied: z.array(z.string()).optional(),
   dependsOn: z.array(z.string()).default([]),
