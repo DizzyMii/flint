@@ -1,5 +1,6 @@
 import { call, tool } from 'flint';
-import type { Budget, ProviderAdapter, Result, StandardSchemaV1 } from 'flint';
+import type { ProviderAdapter, Result, StandardSchemaV1 } from 'flint';
+import type { Budget } from 'flint/budget';
 import { ContractSchema } from './contract.ts';
 import type { Contract } from './contract.ts';
 
