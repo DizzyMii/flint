@@ -301,6 +301,6 @@ if (!res.ok) {
 
 ## See also
 
-- [Result<T>](/guide/faq#why-resultt-instead-of-throwing) — why Flint uses Result
+- [Result&lt;T&gt;](/guide/faq#why-resultt-instead-of-throwing) — why Flint uses Result
 - [Budget](/features/budget) — BudgetExhausted in context
 - [Safety](/features/safety) — error-adjacent safety primitives
